@@ -9,38 +9,235 @@
     body {
       font-family: Arial, sans-serif;
       background: #f1f5f9;
-      text-align: center;
-      padding: 30px 15px;
       color: #172033;
+      text-align: center;
+      padding: 25px 15px;
     }
     .contenitore {
       background: white;
       max-width: 420px;
-      margin: 40px auto;
-      padding: 30px 20px;
+      margin: 30px auto;
+      padding: 28px 20px;
       border-radius: 16px;
       box-shadow: 0 4px 20px #00000015;
     }
     h1 { color: #166534; }
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 14px;
+      margin: 8px 0;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    input { border: 1px solid #cbd5e1; }
     button {
       background: #16a34a;
       color: white;
-      padding: 14px 24px;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
       cursor: pointer;
     }
+    button:disabled { opacity: 0.6; }
+    .secondario { background: #475569; }
+    #messaggio { margin-top: 15px; }
+    .errore { color: #b91c1c; }
+    .successo { color: #166534; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
+
   <div class="contenitore">
     <h1>🏆 Fanta Schedina</h1>
-    <p>Benvenuto nella nostra competizione!</p>
-    <p>Pronostica 4 partite e scala la classifica.</p>
-    <button onclick="alert('Presto potrai giocare!')">
-      Inizia a giocare
-    </button>
+    <p>Pronostica 4 partite e scala la classifica!</p>
+
+    <div id="accesso">
+      <input id="email" type="email"
+             placeholder="La tua email"
+             autocomplete="email">
+      <input id="password" type="password"
+             placeholder="Password"
+             autocomplete="current-password">
+
+      <button id="entra">Accedi</button>
+      <button id="registrati" class="secondario">
+        Registrati
+      </button>
+      <button id="recupera" class="secondario">
+        Password dimenticata?
+      </button>
+    </div>
+
+    <div id="areaGiocatore" hidden>
+      <h2>Benvenuto!</h2>
+      <p id="utente"></p>
+      <p>Presto potrai giocare le tue schedine.</p>
+      <button id="esci">Esci</button>
+    </div>
+
+    <div id="nuovaPassword" hidden>
+      <h2>Imposta una nuova password</h2>
+      <input id="passwordNuova" type="password"
+             placeholder="Nuova password"
+             autocomplete="new-password">
+      <button id="salvaPassword">Salva password</button>
+    </div>
+
+    <p id="messaggio" role="status"></p>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL =
+      "https://mcisjnpkgpjzcirksiwv.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_C8Ec4KTIfTMWkTbSVSQyvQ_I2UrcLkp";
+
+    const client = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    const $ = (id) => document.getElementById(id);
+    const sito = window.location.origin +
+                 window.location.pathname;
+
+    let recuperoPassword = false;
+
+    function messaggio(testo, errore = false) {
+      $("messaggio").textContent = testo;
+      $("messaggio").className =
+        errore ? "errore" : "successo";
+    }
+
+    function credenziali() {
+      return {
+        email: $("email").value.trim(),
+        password: $("password").value
+      };
+    }
+
+    function mostraSessione(sessione) {
+      $("accesso").hidden = !!sessione;
+      $("areaGiocatore").hidden = !sessione;
+      $("nuovaPassword").hidden = true;
+
+      $("utente").textContent =
+        sessione?.user?.email || "";
+    }
+
+    $("registrati").onclick = async () => {
+      const { email, password } = credenziali();
+
+      if (!email || password.length < 6) {
+        return messaggio(
+          "Inserisci un'email e una password di almeno 6 caratteri.",
+          true
+        );
+      }
+
+      const { error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: sito
+        }
+      });
+
+      if (error) return messaggio(error.message, true);
+
+      messaggio(
+        "Registrazione richiesta! Controlla la tua email per confermare l'account."
+      );
+    };
+
+    $("entra").onclick = async () => {
+      const { email, password } = credenziali();
+
+      const { error } =
+        await client.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (error) return messaggio(error.message, true);
+
+      messaggio("Accesso effettuato!");
+    };
+
+    $("recupera").onclick = async () => {
+      const email = $("email").value.trim();
+
+      if (!email) {
+        return messaggio(
+          "Inserisci prima la tua email.",
+          true
+        );
+      }
+
+      const { error } =
+        await client.auth.resetPasswordForEmail(
+          email,
+          { redirectTo: sito }
+        );
+
+      if (error) return messaggio(error.message, true);
+
+      messaggio(
+        "Se l'indirizzo è registrato, riceverai un'email per reimpostare la password."
+      );
+    };
+
+    $("salvaPassword").onclick = async () => {
+      const password = $("passwordNuova").value;
+
+      if (password.length < 6) {
+        return messaggio(
+          "La password deve avere almeno 6 caratteri.",
+          true
+        );
+      }
+
+      const { error } = await client.auth.updateUser({
+        password
+      });
+
+      if (error) return messaggio(error.message, true);
+
+      recuperoPassword = false;
+      const { data } = await client.auth.getSession();
+      mostraSessione(data.session);
+      messaggio("Password aggiornata!");
+    };
+
+    $("esci").onclick = async () => {
+      const { error } = await client.auth.signOut();
+      if (error) return messaggio(error.message, true);
+      messaggio("Hai effettuato la disconnessione.");
+    };
+
+    client.auth.onAuthStateChange((evento, sessione) => {
+      if (evento === "PASSWORD_RECOVERY") {
+        recuperoPassword = true;
+        $("accesso").hidden = true;
+        $("areaGiocatore").hidden = true;
+        $("nuovaPassword").hidden = false;
+        messaggio("Scegli la tua nuova password.");
+        return;
+      }
+
+      if (!recuperoPassword) {
+        mostraSessione(sessione);
+      }
+    });
+
+    client.auth.getSession().then(({ data, error }) => {
+      if (error) return messaggio(error.message, true);
+      if (!recuperoPassword) {
+        mostraSessione(data.session);
+      }
+    });
+  </script>
 </body>
 </html>
