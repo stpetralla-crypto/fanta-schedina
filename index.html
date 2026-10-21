@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -152,6 +151,22 @@
     #messaggio { position:sticky; bottom:8px; z-index:3; }
     @media(max-width:550px){ .contenitore{padding:17px 12px;} .brand h1{font-size:24px;} .nav button{font-size:12px;padding:12px 5px;} .schedina-card{padding:12px;} .fixture{padding:12px;} }
 
+
+    .nav { flex-wrap:wrap; }
+    .nav button { flex:1 1 120px; }
+    .panel { background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin:16px 0; }
+    .panel h3 {margin:0 0 12px;}
+    .two-col {display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .two-col > * {min-width:0;}
+    .row-actions {display:flex;gap:8px;flex-wrap:wrap;}
+    .row-actions button {width:auto;flex:1;}
+    .item {padding:12px;margin:10px 0;border:1px solid #e2e8f0;border-radius:10px;background:white;overflow-wrap:anywhere;}
+    .item p {margin:6px 0;}
+    .item select,.panel select {width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:white;font-size:15px;}
+    .notice {padding:12px;border-radius:10px;background:#fef3c7;color:#854d0e;margin:12px 0;}
+    .good {color:#166534;font-weight:700;}
+    .muted {color:#64748b;font-size:13px;}
+    @media(max-width:550px){.two-col{grid-template-columns:1fr;}}
   </style>
 </head>
 
@@ -194,6 +209,7 @@
       <div class="welcome"><div><h2>Benvenuto!</h2><p id="utente"></p></div></div>
       <nav class="nav" aria-label="Menu principale">
         <button type="button" class="active" data-view="gioca">⚽ Gioca</button>
+        <button type="button" data-view="classifica">🏆 Classifica</button>
         <button type="button" data-view="admin" id="tabAdmin" hidden>⚙️ Gestione</button>
         <button type="button" data-view="profilo">👤 Profilo</button>
       </nav>
@@ -204,6 +220,11 @@
           <div id="elencoSchedine">Caricamento...</div>
           <button id="aggiornaSchedine" class="secondario">↻ Aggiorna schedine</button>
         </div>
+      </section>
+      <section id="view-classifica" class="view" hidden>
+        <h2>🏆 Classifica</h2><p class="info">Punti delle schedine concluse, per giocatore.</p>
+        <button id="ricaricaClassifica" class="secondario">↻ Aggiorna classifica</button>
+        <div id="listaClassifica" class="panel">Apri la sezione per caricare la classifica.</div>
       </section>
       <section id="view-admin" class="view" hidden>
         <h2>⚙️ Gestione schedine</h2>
@@ -219,10 +240,26 @@
           <div id="campiPartite"></div>
           <button id="creaSchedina">Pubblica schedina</button>
         </div></div>
+        <div class="panel"><h3>👥 Utenti registrati</h3><p class="info">Solo amministratore: email, conferma e squadra associata.</p><button id="aggiornaUtenti" class="secondario">↻ Aggiorna utenti</button><div id="listaUtenti"></div></div>
+        <div class="panel"><h3>🔐 Autorizza email e squadra</h3>
+          <label for="emailDaAutorizzare">Email completa del partecipante</label><input type="email" id="emailDaAutorizzare" placeholder="nome@esempio.it">
+          <label for="squadraDaAutorizzare">Squadra assegnata</label><select id="squadraDaAutorizzare"></select>
+          <button id="autorizzaEmail">✓ Autorizza / aggiorna</button>
+          <p class="info">Puoi anche disabilitare un'email nell'elenco sottostante.</p><div id="listaAutorizzazioni"></div>
+        </div>
+        <div class="panel"><h3>🥅 Inserisci risultati</h3><p class="info">Inserisci i gol delle partite concluse. Lascia i campi vuoti se il risultato non è disponibile.</p><button id="aggiornaRisultati" class="secondario">↻ Aggiorna partite</button><div id="listaRisultati"></div></div>
       </section>
       <section id="view-profilo" class="view" hidden>
         <h2>👤 Il tuo profilo</h2>
-        <div class="profile-card"><p>Account: <strong id="emailProfilo"></strong></p><p class="info">I tuoi pronostici sono associati a questo account.</p><button id="esci" class="secondario">Esci dall'account</button></div>
+        <div class="profile-card"><p>Account: <strong id="emailProfilo"></strong></p>
+          <p>Squadra: <strong id="squadraProfilo">In attesa di autorizzazione</strong></p>
+          <p>Nome giocatore: <strong id="nomeAttuale">—</strong></p>
+          <label for="nomeProfilo">Cambia nome giocatore</label><input id="nomeProfilo" maxlength="40" placeholder="Il tuo nome">
+          <button id="salvaNome">Salva nome</button>
+          <h3>🔑 Cambia password</h3><label for="pwProfilo">Nuova password</label><input type="password" id="pwProfilo" autocomplete="new-password" placeholder="Almeno 8 caratteri">
+          <label for="pwConferma">Conferma nuova password</label><input type="password" id="pwConferma" autocomplete="new-password" placeholder="Ripeti la password">
+          <button id="cambiaPasswordProfilo">Aggiorna password</button>
+          <button id="esci" class="secondario">Esci dall'account</button></div>
       </section>
     </div>
 
@@ -273,6 +310,10 @@
     let recuperoPassword = false;
     let controlloUtente = 0;
     let caricamento = 0;
+    let utenteAttivo = null;
+    let adminAttivo = false;
+    let squadreDisponibili = [];
+    let autorizzazioneAttiva = null;
 
     function messaggio(testo, errore = false) {
       $("messaggio").textContent = testo;
@@ -359,10 +400,12 @@
       }
 
       const amministratore = !!data;
+      adminAttivo = amministratore;
 
       $("pannelloAdmin").hidden = !amministratore;
       $("tabAdmin").hidden = !amministratore;
-      if (!amministratore && !$("view-admin").hidden) cambiaVista("gioca");
+      if (!amministratore && !$('"view-admin"').hidden) cambiaVista("gioca");
+      if (amministratore) { await caricaSquadre(); await caricaGestione(); }
 
     }
 
@@ -373,15 +416,20 @@
 
       $("utente").textContent = sessione?.user?.email || "";
       $("emailProfilo").textContent = sessione?.user?.email || "";
+      utenteAttivo = sessione?.user || null;
+      adminAttivo = false;
+      $("tabAdmin").hidden = true;
+      if (utenteAttivo) caricaProfilo(utenteAttivo);
+      else { autorizzazioneAttiva = null; $("squadraProfilo").textContent = "—"; }
 
       verificaAmministratore(sessione?.user);
-      if (sessione?.user) caricaSchedine(sessione.user);
+      if (sessione?.user) caricaProfilo(sessione.user).then(() => caricaSchedine(sessione.user));
       else { ++caricamento; $("elencoSchedine").replaceChildren(); }
     }
 
     // MENU DI NAVIGAZIONE
     function cambiaVista(vista) {
-      for (const nome of ["gioca", "admin", "profilo"]) {
+      for (const nome of ["gioca", "classifica", "admin", "profilo"]) {
         $("view-" + nome).hidden = nome !== vista;
       }
       document.querySelectorAll("[data-view]").forEach(b => {
@@ -389,6 +437,9 @@
         b.setAttribute("aria-current", b.dataset.view === vista ? "page" : "false");
       });
       messaggio("");
+      if (vista === "classifica") caricaClassifica();
+      if (vista === "admin" && adminAttivo) caricaGestione();
+      if (vista === "profilo" && utenteAttivo) caricaProfilo(utenteAttivo);
     }
     document.querySelectorAll("[data-view]").forEach(b => {
       b.onclick = () => cambiaVista(b.dataset.view);
@@ -397,6 +448,10 @@
     // PRONOSTICI: LA SCELTA E' UNA BOZZA FINO ALLA CONFERMA
     async function caricaSchedine(user) {
       const richiesta = ++caricamento;
+      if (!adminAttivo && (!autorizzazioneAttiva || !autorizzazioneAttiva.abilitato)) {
+        $("elencoSchedine").textContent = "Account in attesa di autorizzazione dell'amministratore. Non puoi giocare finché non viene associata la tua email a una squadra.";
+        return;
+      }
       const elenco = $("elencoSchedine");
       elenco.textContent = "Caricamento schedine...";
       const { data: schedine, error } = await client.from("schedine")
@@ -497,6 +552,158 @@
       if(error||!data.user)return messaggio("Accedi nuovamente.",true);
       await caricaSchedine(data.user);
     };
+
+
+    // DATI UTENTE, SQUADRA E AUTORIZZAZIONI
+    function formatoData(valore) { return valore ? new Date(valore).toLocaleString("it-IT") : "—"; }
+    function el(t, testo, classe) { const x=document.createElement(t); if(testo!==undefined)x.textContent=String(testo); if(classe)x.className=classe; return x; }
+    async function caricaSquadre() {
+      const {data,error}=await client.from("squadre").select("id,nome").order("nome");
+      if(error){messaggio("Squadre: "+error.message,true);return;}
+      squadreDisponibili=data||[];
+      const select=$("squadraDaAutorizzare");select.replaceChildren();
+      for(const s of squadreDisponibili){const o=document.createElement("option");o.value=s.id;o.textContent=s.nome;select.appendChild(o);}
+    }
+    async function caricaProfilo(user) {
+      if(!user) return;
+      const email=(user.email||"").trim().toLowerCase();
+      const [{data:prof}, {data:authz,error:ea}]=await Promise.all([
+        client.from("profiles").select("username").eq("id",user.id).maybeSingle(),
+        client.rpc("mia_squadra")
+      ]);
+      if(utenteAttivo?.id!==user.id)return;
+      $("nomeAttuale").textContent=prof?.username||"Non impostato";
+      $("nomeProfilo").value=prof?.username||"";
+      if(ea){
+        autorizzazioneAttiva=null;
+        $("squadraProfilo").textContent="Controllo non disponibile (completare SQL)";
+      } else {
+        autorizzazioneAttiva=(authz||[])[0]||null;
+        $("squadraProfilo").textContent=autorizzazioneAttiva?.nome_squadra||"In attesa di autorizzazione";
+      }
+    }
+    $("salvaNome").onclick=async()=>{
+      if(!utenteAttivo)return;
+      const username=$("nomeProfilo").value.trim();
+      if(username.length<2||username.length>40)return messaggio("Il nome deve contenere da 2 a 40 caratteri.",true);
+      const {error}=await client.from("profiles").upsert({id:utenteAttivo.id,username},{onConflict:"id"});
+      if(error)return messaggio("Nome non salvato: "+error.message,true);
+      $("nomeAttuale").textContent=username;messaggio("Nome giocatore aggiornato.");
+    };
+    $("cambiaPasswordProfilo").onclick=async()=>{
+      const p=$("pwProfilo").value,c=$("pwConferma").value;
+      if(p.length<8)return messaggio("La password deve avere almeno 8 caratteri.",true);
+      if(p!==c)return messaggio("Le due password non coincidono.",true);
+      const b=$("cambiaPasswordProfilo");b.disabled=true;
+      const {error}=await client.auth.updateUser({password:p});b.disabled=false;
+      if(error)return messaggio("Password non aggiornata: "+error.message,true);
+      $("pwProfilo").value="";$("pwConferma").value="";
+      messaggio("Password aggiornata con successo.");
+    };
+    async function caricaClassifica(){
+      const target=$("listaClassifica");target.textContent="Caricamento...";
+      const {data,error}=await client.rpc("classifica_pubblica");
+      target.replaceChildren();
+      if(error){target.textContent="Classifica non disponibile: completare la configurazione SQL. "+error.message;return;}
+      if(!data?.length){target.textContent="Nessun punteggio disponibile.";return;}
+      for(const [i,p] of data.entries()){
+        const card=el("div",undefined,"item");
+        card.append(el("strong",(i+1)+"° · "+(p.nome_squadra||"Squadra da assegnare")+" — "+(p.username||"Giocatore")),el("p",(p.punti_totali??0)+" punti · "+(p.schedine_giocate??0)+" schedine"));
+        target.append(card);
+      }
+    }
+    $("ricaricaClassifica").onclick=caricaClassifica;
+    async function caricaGestione(){
+      if(!adminAttivo)return;
+      if(!squadreDisponibili.length)await caricaSquadre();
+      await Promise.all([caricaUtenti(),caricaAutorizzazioni(),caricaRisultati()]);
+    }
+    async function caricaUtenti(){
+      if(!adminAttivo)return;
+      const target=$("listaUtenti");target.textContent="Caricamento...";
+      const {data,error}=await client.rpc("elenco_utenti_admin");target.replaceChildren();
+      if(error){target.textContent="Errore utenti: "+error.message;return;}
+      if(!data?.length){target.textContent="Nessun utente registrato.";return;}
+      for(const u of data){
+        const card=el("div",undefined,"item");
+        card.append(el("strong",u.username||"Senza nome"),el("p",u.email),el("p",(u.email_confermata?"✓ Email confermata":"Email non confermata")+" · Iscritto: "+formatoData(u.data_registrazione),"muted"));
+        target.append(card);
+      }
+    }
+    $("aggiornaUtenti").onclick=caricaUtenti;
+    async function caricaAutorizzazioni(){
+      if(!adminAttivo)return;
+      const target=$("listaAutorizzazioni");target.textContent="Caricamento...";
+      const {data,error}=await client.from("utenti_autorizzati").select("id,email,squadra_id,abilitato").order("email");target.replaceChildren();
+      if(error){target.textContent="Errore autorizzazioni: "+error.message;return;}
+      if(!data?.length){target.textContent="Non ci sono email autorizzate.";return;}
+      for(const u of data){
+        const card=el("div",undefined,"item");
+        const nome=squadreDisponibili.find(s=>s.id===u.squadra_id)?.nome||"Squadra non trovata";
+        card.append(el("strong",u.email),el("p",nome+" · "+(u.abilitato?"Abilitato":"Disabilitato"),"muted"));
+        const btn=el("button",u.abilitato?"Disabilita":"Riabilita",u.abilitato?"secondario":"");
+        btn.onclick=async()=>{
+          if(!confirm((u.abilitato?"Disabilitare ":"Riabilitare ")+u.email+"?"))return;
+          btn.disabled=true;
+          const {error}=await client.from("utenti_autorizzati").update({abilitato:!u.abilitato}).eq("id",u.id);
+          if(error)messaggio("Errore: "+error.message,true);else{messaggio("Autorizzazione aggiornata.");await caricaAutorizzazioni();}
+          btn.disabled=false;
+        };
+        card.append(btn);target.append(card);
+      }
+    }
+    $("autorizzaEmail").onclick=async()=>{
+      if(!adminAttivo)return;
+      const email=$("emailDaAutorizzare").value.trim().toLowerCase();
+      const squadra_id=Number($("squadraDaAutorizzare").value);
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!squadra_id)return messaggio("Inserisci un'email completa e scegli la squadra.",true);
+      const b=$("autorizzaEmail");b.disabled=true;
+      const {error}=await client.rpc("autorizza_email_admin",{p_email:email,p_squadra_id:squadra_id});b.disabled=false;
+      if(error)return messaggio("Errore autorizzazione: "+error.message,true);
+      $("emailDaAutorizzare").value="";messaggio("Email autorizzata e associata alla squadra.");
+      await caricaAutorizzazioni();
+    };
+    async function caricaRisultati(){
+      if(!adminAttivo)return;
+      const target=$("listaRisultati");target.textContent="Caricamento...";
+      const [{data:schedine,error:e1},{data:partite,error:e2}]=await Promise.all([
+        client.from("schedine").select("id,titolo").order("id",{ascending:false}),
+        client.from("matches").select("id,schedina_id,posizione,home_team,away_team,home_score,away_score,match_date").order("schedina_id",{ascending:false}).order("posizione")
+      ]);
+      target.replaceChildren();
+      if(e1||e2){target.textContent="Errore risultati: "+(e1||e2).message;return;}
+      for(const s of schedine||[]){
+        const matches=(partite||[]).filter(p=>p.schedina_id===s.id);
+        if(!matches.length)continue;
+        const group=el("div",undefined,"panel");group.append(el("h3",s.titolo));
+        for(const p of matches){
+          const item=el("div",undefined,"item");item.append(el("strong",p.home_team+" – "+p.away_team));
+          item.append(el("p","Inizio: "+formatoData(p.match_date),"muted"));
+          const fields=el("div",undefined,"two-col");
+          const home=document.createElement("input"),away=document.createElement("input");
+          for(const [input,val,placeholder] of [[home,p.home_score,"Gol casa"],[away,p.away_score,"Gol ospite"]]){
+            input.type="number";input.min="0";input.step="1";input.placeholder=placeholder;
+            input.value=val===null||val===undefined?"":String(val);
+            input.setAttribute("aria-label",placeholder+" "+p.home_team+" "+p.away_team);
+          }
+          fields.append(home,away);
+          const save=el("button","Salva risultato");
+          save.onclick=async()=>{
+            const blank=home.value===""&&away.value==="";
+            if(!blank&&(home.value===""||away.value===""))return messaggio("Inserisci entrambi i gol oppure lascia entrambi i campi vuoti.",true);
+            if(!blank&&(!Number.isInteger(Number(home.value))||!Number.isInteger(Number(away.value))||Number(home.value)<0||Number(away.value)<0))return messaggio("I gol devono essere numeri interi non negativi.",true);
+            if(!confirm("Confermi il risultato di "+p.home_team+" – "+p.away_team+"?"))return;
+            save.disabled=true;
+            const {error}=await client.from("matches").update({home_score:blank?null:Number(home.value),away_score:blank?null:Number(away.value)}).eq("id",p.id);
+            save.disabled=false;
+            if(error)messaggio("Errore risultato: "+error.message,true);else messaggio("Risultato salvato.");
+          };
+          item.append(fields,save);group.append(item);
+        }
+        target.append(group);
+      }
+    }
+    $("aggiornaRisultati").onclick=caricaRisultati;
 
     // REGISTRAZIONE
 
