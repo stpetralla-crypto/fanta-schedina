@@ -6,93 +6,201 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fanta Schedina</title>
   <style>
+    * { box-sizing: border-box; }
+
     body {
       font-family: Arial, sans-serif;
       background: #f1f5f9;
       color: #172033;
       text-align: center;
       padding: 25px 15px;
+      margin: 0;
     }
+
     .contenitore {
       background: white;
-      max-width: 420px;
+      max-width: 550px;
       margin: 30px auto;
       padding: 28px 20px;
       border-radius: 16px;
       box-shadow: 0 4px 20px #00000015;
     }
+
     h1 { color: #166534; }
+    h2 { margin-top: 25px; }
+    h3 { color: #166534; }
+
     input, button {
-      box-sizing: border-box;
       width: 100%;
       padding: 14px;
       margin: 8px 0;
       border-radius: 8px;
       font-size: 16px;
     }
-    input { border: 1px solid #cbd5e1; }
+
+    input {
+      border: 1px solid #cbd5e1;
+    }
+
     button {
       background: #16a34a;
       color: white;
       border: none;
       cursor: pointer;
     }
-    button:disabled { opacity: 0.6; }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
     .secondario { background: #475569; }
-    #messaggio { margin-top: 15px; }
+
+    .partita {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      background: #f8fafc;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    #messaggio {
+      margin-top: 15px;
+      overflow-wrap: anywhere;
+    }
+
     .errore { color: #b91c1c; }
     .successo { color: #166534; }
+
     [hidden] { display: none !important; }
   </style>
 </head>
-<body>
 
+<body>
   <div class="contenitore">
+
     <h1>🏆 Fanta Schedina</h1>
     <p>Pronostica 4 partite e scala la classifica!</p>
 
+    <!-- ACCESSO E REGISTRAZIONE -->
     <div id="accesso">
-      <input id="email" type="email"
-             placeholder="La tua email"
-             autocomplete="email">
-      <input id="password" type="password"
-             placeholder="Password"
-             autocomplete="current-password">
+
+      <input
+        id="email"
+        type="email"
+        placeholder="La tua email"
+        autocomplete="email"
+      >
+
+      <input
+        id="password"
+        type="password"
+        placeholder="Password"
+        autocomplete="current-password"
+      >
 
       <button id="entra">Accedi</button>
+
       <button id="registrati" class="secondario">
         Registrati
       </button>
+
       <button id="recupera" class="secondario">
         Password dimenticata?
       </button>
+
     </div>
 
+    <!-- AREA UTENTE -->
     <div id="areaGiocatore" hidden>
+
       <h2>Benvenuto!</h2>
       <p id="utente"></p>
-      <p>Presto potrai giocare le tue schedine.</p>
-      <button id="esci">Esci</button>
+
+      <!-- PANNELLO AMMINISTRATORE -->
+      <div id="pannelloAdmin" hidden>
+
+        <h2>⚙️ Pannello amministratore</h2>
+        <p>Crea una nuova schedina</p>
+
+        <label for="titoloSchedina">
+          Titolo schedina
+        </label>
+
+        <input
+          id="titoloSchedina"
+          type="text"
+          placeholder="Es. Schedina 1"
+        >
+
+        <label for="scadenzaSchedina">
+          Scadenza pronostici
+        </label>
+
+        <input
+          id="scadenzaSchedina"
+          type="datetime-local"
+        >
+
+        <h3>Le 4 partite</h3>
+
+        <div id="campiPartite"></div>
+
+        <button id="creaSchedina">
+          Pubblica schedina
+        </button>
+
+      </div>
+
+      <p id="testoGiocatore">
+        Presto potrai giocare le tue schedine.
+      </p>
+
+      <button id="esci" class="secondario">
+        Esci
+      </button>
+
     </div>
 
+    <!-- RECUPERO PASSWORD -->
     <div id="nuovaPassword" hidden>
+
       <h2>Imposta una nuova password</h2>
-      <input id="passwordNuova" type="password"
-             placeholder="Nuova password"
-             autocomplete="new-password">
-      <button id="salvaPassword">Salva password</button>
+
+      <input
+        id="passwordNuova"
+        type="password"
+        placeholder="Nuova password"
+        autocomplete="new-password"
+      >
+
+      <button id="salvaPassword">
+        Salva password
+      </button>
+
     </div>
 
     <p id="messaggio" role="status"></p>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <script>
+    // COLLEGAMENTO SUPABASE
+
     const SUPABASE_URL =
       "https://mcisjnpkgpjzcirksiwv.supabase.co";
 
     const SUPABASE_KEY =
-      "sb_publishable_C8Ec4KTIfTMWkTbSVSQyvQ_I2UrcLkp";
+  "sb_publishable_C8Ec4KTIfTMWkTbSVSQyvQ_I2UrcLkp";
 
     const client = window.supabase.createClient(
       SUPABASE_URL,
@@ -100,10 +208,13 @@
     );
 
     const $ = (id) => document.getElementById(id);
-    const sito = window.location.origin +
-                 window.location.pathname;
+
+    const sito =
+      window.location.origin +
+      window.location.pathname;
 
     let recuperoPassword = false;
+    let controlloUtente = 0;
 
     function messaggio(testo, errore = false) {
       $("messaggio").textContent = testo;
@@ -118,6 +229,83 @@
       };
     }
 
+    // CREAZIONE DEI CAMPI PER LE 4 PARTITE
+
+    function preparaPartite() {
+      const contenitore = $("campiPartite");
+      contenitore.replaceChildren();
+
+      for (let i = 1; i <= 4; i++) {
+        const div = document.createElement("div");
+        div.className = "partita";
+
+        const titolo = document.createElement("h3");
+        titolo.textContent = "Partita " + i;
+        div.appendChild(titolo);
+
+        const campi = [
+          ["casa", "Squadra di casa", "text"],
+          ["ospite", "Squadra ospite", "text"],
+          ["data", "Data e ora partita", "datetime-local"]
+        ];
+
+        for (const [nome, etichetta, tipo] of campi) {
+          const id = nome + i;
+
+          const label = document.createElement("label");
+          label.htmlFor = id;
+          label.textContent = etichetta;
+
+          const input = document.createElement("input");
+          input.id = id;
+          input.type = tipo;
+
+          if (tipo === "text") {
+            input.placeholder = etichetta;
+          }
+
+          div.append(label, input);
+        }
+
+        contenitore.appendChild(div);
+      }
+    }
+
+    preparaPartite();
+
+    // VERIFICA AMMINISTRATORE
+
+    async function verificaAmministratore(user) {
+      const richiesta = ++controlloUtente;
+
+      $("pannelloAdmin").hidden = true;
+      $("testoGiocatore").hidden = false;
+
+      if (!user) return;
+
+      const { data, error } = await client
+        .from("admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (richiesta !== controlloUtente) return;
+
+      if (error) {
+        messaggio(
+          "Impossibile verificare il ruolo: " +
+          error.message,
+          true
+        );
+        return;
+      }
+
+      const amministratore = !!data;
+
+      $("pannelloAdmin").hidden = !amministratore;
+      $("testoGiocatore").hidden = amministratore;
+    }
+
     function mostraSessione(sessione) {
       $("accesso").hidden = !!sessione;
       $("areaGiocatore").hidden = !sessione;
@@ -125,7 +313,11 @@
 
       $("utente").textContent =
         sessione?.user?.email || "";
+
+      verificaAmministratore(sessione?.user);
     }
+
+    // REGISTRAZIONE
 
     $("registrati").onclick = async () => {
       const { email, password } = credenziali();
@@ -145,12 +337,16 @@
         }
       });
 
-      if (error) return messaggio(error.message, true);
+      if (error) {
+        return messaggio(error.message, true);
+      }
 
       messaggio(
         "Registrazione richiesta! Controlla la tua email per confermare l'account."
       );
     };
+
+    // ACCESSO
 
     $("entra").onclick = async () => {
       const { email, password } = credenziali();
@@ -161,10 +357,14 @@
           password
         });
 
-      if (error) return messaggio(error.message, true);
+      if (error) {
+        return messaggio(error.message, true);
+      }
 
       messaggio("Accesso effettuato!");
     };
+
+    // PASSWORD DIMENTICATA
 
     $("recupera").onclick = async () => {
       const email = $("email").value.trim();
@@ -182,12 +382,16 @@
           { redirectTo: sito }
         );
 
-      if (error) return messaggio(error.message, true);
+      if (error) {
+        return messaggio(error.message, true);
+      }
 
       messaggio(
         "Se l'indirizzo è registrato, riceverai un'email per reimpostare la password."
       );
     };
+
+    // CAMBIO PASSWORD
 
     $("salvaPassword").onclick = async () => {
       const password = $("passwordNuova").value;
@@ -203,26 +407,203 @@
         password
       });
 
-      if (error) return messaggio(error.message, true);
+      if (error) {
+        return messaggio(error.message, true);
+      }
 
       recuperoPassword = false;
+
       const { data } = await client.auth.getSession();
       mostraSessione(data.session);
+
       messaggio("Password aggiornata!");
     };
 
+    // CREAZIONE SCHEDINA E PARTITE
+
+    $("creaSchedina").onclick = async () => {
+      const pulsante = $("creaSchedina");
+
+      const titolo = $("titoloSchedina").value.trim();
+      const scadenza = $("scadenzaSchedina").value;
+
+      if (!titolo || !scadenza) {
+        return messaggio(
+          "Inserisci titolo e scadenza.",
+          true
+        );
+      }
+
+      const scadenzaData = new Date(scadenza);
+
+      if (
+        Number.isNaN(scadenzaData.getTime()) ||
+        scadenzaData <= new Date()
+      ) {
+        return messaggio(
+          "La scadenza deve essere una data futura.",
+          true
+        );
+      }
+
+      const partite = [];
+
+      for (let i = 1; i <= 4; i++) {
+        const casa = $("casa" + i).value.trim();
+        const ospite = $("ospite" + i).value.trim();
+        const data = $("data" + i).value;
+
+        if (!casa || !ospite || !data) {
+          return messaggio(
+            "Completa tutti i campi della partita " + i,
+            true
+          );
+        }
+
+        if (casa.toLowerCase() === ospite.toLowerCase()) {
+          return messaggio(
+            "Le due squadre della partita " +
+            i + " devono essere diverse.",
+            true
+          );
+        }
+
+        const dataPartita = new Date(data);
+
+        if (
+          Number.isNaN(dataPartita.getTime()) ||
+          dataPartita <= scadenzaData
+        ) {
+          return messaggio(
+            "La partita " + i +
+            " deve iniziare dopo la scadenza.",
+            true
+          );
+        }
+
+        partite.push({
+          home_team: casa,
+          away_team: ospite,
+          match_date: dataPartita.toISOString(),
+          posizione: i
+        });
+      }
+
+      pulsante.disabled = true;
+      messaggio("Pubblicazione in corso...");
+
+      try {
+        // Ricontrolliamo il ruolo lato database.
+        const { data: utente, error: erroreUtente } =
+          await client.auth.getUser();
+
+        if (erroreUtente || !utente.user) {
+          throw new Error(
+            "Devi effettuare nuovamente l'accesso."
+          );
+        }
+
+        const { data: admin, error: erroreAdmin } =
+          await client
+            .from("admins")
+            .select("user_id")
+            .eq("user_id", utente.user.id)
+            .maybeSingle();
+
+        if (erroreAdmin || !admin) {
+          throw new Error(
+            "Non hai i permessi di amministratore."
+          );
+        }
+
+        // Creiamo la schedina.
+        const { data: schedina, error: erroreSchedina } =
+          await client
+            .from("schedine")
+            .insert({
+              titolo: titolo,
+              scadenza: scadenzaData.toISOString()
+            })
+            .select("id")
+            .single();
+
+        if (erroreSchedina) {
+          throw erroreSchedina;
+        }
+
+        // Associamo le quattro partite alla schedina.
+        const righe = partite.map(partita => ({
+          ...partita,
+          schedina_id: schedina.id
+        }));
+
+        const { error: errorePartite } =
+          await client
+            .from("matches")
+            .insert(righe);
+
+        if (errorePartite) {
+          // Tentiamo di eliminare la schedina
+          // incompleta se il salvataggio fallisce.
+          const { error: errorePulizia } =
+            await client
+              .from("schedine")
+              .delete()
+              .eq("id", schedina.id);
+
+          if (errorePulizia) {
+            throw new Error(
+              "Partite non salvate. È rimasta una " +
+              "schedina incompleta (ID " +
+              schedina.id + "). " +
+              errorePartite.message
+            );
+          }
+
+          throw errorePartite;
+        }
+
+        messaggio(
+          "Schedina pubblicata con successo! " +
+          "Sono state salvate 4 partite."
+        );
+
+        $("titoloSchedina").value = "";
+        $("scadenzaSchedina").value = "";
+        preparaPartite();
+
+      } catch (errore) {
+        messaggio(
+          "Errore: " + errore.message,
+          true
+        );
+      } finally {
+        pulsante.disabled = false;
+      }
+    };
+
+    // USCITA
+
     $("esci").onclick = async () => {
       const { error } = await client.auth.signOut();
-      if (error) return messaggio(error.message, true);
+
+      if (error) {
+        return messaggio(error.message, true);
+      }
+
       messaggio("Hai effettuato la disconnessione.");
     };
+
+    // GESTIONE SESSIONE
 
     client.auth.onAuthStateChange((evento, sessione) => {
       if (evento === "PASSWORD_RECOVERY") {
         recuperoPassword = true;
+
         $("accesso").hidden = true;
         $("areaGiocatore").hidden = true;
         $("nuovaPassword").hidden = false;
+
         messaggio("Scegli la tua nuova password.");
         return;
       }
@@ -233,11 +614,15 @@
     });
 
     client.auth.getSession().then(({ data, error }) => {
-      if (error) return messaggio(error.message, true);
+      if (error) {
+        return messaggio(error.message, true);
+      }
+
       if (!recuperoPassword) {
         mostraSessione(data.session);
       }
     });
+
   </script>
 </body>
 </html>
