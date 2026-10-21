@@ -13,21 +13,21 @@
       background: #f1f5f9;
       color: #172033;
       text-align: center;
-      padding: 25px 15px;
+      padding: 16px 12px;
       margin: 0;
     }
 
     .contenitore {
       background: white;
-      max-width: 550px;
-      margin: 30px auto;
-      padding: 28px 20px;
+      max-width: 780px;
+      margin: 12px auto;
+      padding: 24px 24px;
       border-radius: 16px;
       box-shadow: 0 4px 20px #00000015;
     }
 
-    h1 { color: #166534; }
-    h2 { margin-top: 25px; }
+    h1 { color: #166534; margin: 5px 0 8px; font-size: 30px; }
+    h2 { margin-top: 22px; font-size: 23px; }
     h3 { color: #166534; }
 
     input, button {
@@ -56,17 +56,41 @@
 
     .secondario { background: #475569; }
 
-    .scelta { display: flex; gap: 8px; margin-top: 10px; }
+    .scelta { display: flex; gap: 8px; margin-top: 12px; }
+    .scelta button { flex: 1; min-width: 0; padding: 12px 8px; }
     .scelta button { background: #e2e8f0; color: #172033; font-weight: bold; }
-    .scelta button.attivo { background: #16a34a; color: white; }
+    .scelta button.attivo { background: #16a34a; color: white; box-shadow: 0 0 0 2px #86efac; }
     .scelta button:disabled { cursor: not-allowed; }
     .info { color: #475569; font-size: 14px; }
     .partita {
       border: 1px solid #cbd5e1;
       border-radius: 10px;
       padding: 15px;
-      margin: 15px 0;
+      margin: 12px 0;
       background: #f8fafc;
+    }
+
+    #areaGiocatore > h2 { margin-bottom: 4px; }
+    #utente { color: #64748b; font-size: 14px; margin-top: 0; overflow-wrap: anywhere; }
+    #areaPronostici { margin-top: 18px; }
+    #elencoSchedine { display: grid; grid-template-columns: 1fr; gap: 14px; text-align: left; }
+    #elencoSchedine > .partita { margin: 0; padding: 20px; border-radius: 14px; background: #fff; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px #00000009; }
+    #elencoSchedine > .partita > h3 { font-size: 21px; margin: 0 0 8px; }
+    #elencoSchedine > .partita > .partita { padding: 13px 15px; margin: 10px 0; background: #f8fafc; }
+    #elencoSchedine > .partita > .partita strong { display: block; font-size: 15px; }
+    #elencoSchedine > .partita > .partita .info { margin: 7px 0 2px; }
+    .admin-box { margin: 24px 0 10px; text-align: left; border: 1px solid #d1d5db; border-radius: 12px; background: #f8fafc; overflow: hidden; }
+    .admin-box summary { padding: 17px; cursor: pointer; font-weight: 700; font-size: 17px; color: #166534; list-style-position: inside; }
+    .summary-hint { display: block; margin: 6px 0 0 20px; font-size: 12px; font-weight: 400; color: #64748b; }
+    .admin-content { padding: 0 18px 18px; text-align: center; }
+    .admin-content .partita { background: white; }
+    #messaggio:empty { display: none; }
+    #messaggio:not(:empty) { background: #f1f5f9; padding: 12px; border-radius: 9px; }
+    @media (max-width: 550px) {
+      .contenitore { padding: 20px 14px; }
+      h1 { font-size: 27px; }
+      #elencoSchedine > .partita { padding: 13px; }
+      #elencoSchedine > .partita > .partita { padding: 12px; }
     }
 
     label {
@@ -85,14 +109,56 @@
     .successo { color: #166534; }
 
     [hidden] { display: none !important; }
+
+    :root { --green:#15803d; --ink:#10243a; --muted:#64748b; --line:#e2e8f0; }
+    body { background:linear-gradient(145deg,#eaf7ef,#f1f5f9 52%); }
+    .contenitore { max-width:920px; padding:28px; }
+    .brand { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; text-align:left; border-bottom:1px solid var(--line); padding-bottom:16px; }
+    .brand h1 { margin:0; font-size:27px; }
+    .brand p { margin:5px 0 0; color:var(--muted); font-size:14px; }
+    .nav { display:flex; gap:8px; margin:20px 0; padding:5px; background:#f1f5f9; border-radius:13px; }
+    .nav button { flex:1; margin:0; width:auto; background:transparent; color:#334155; padding:12px 9px; font-size:14px; font-weight:700; }
+    .nav button.active { background:white; color:var(--green); box-shadow:0 1px 6px #00000012; }
+    .view { text-align:left; }
+    .view h2 { margin:5px 0 8px; }
+    .welcome { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+    .welcome #utente { margin:0; }
+    .pill { display:inline-block; background:#dcfce7; color:#166534; border-radius:99px; padding:7px 11px; font-size:12px; font-weight:bold; }
+    .pill.closed { background:#e2e8f0; color:#475569; }
+    .fixture { background:white; border:1px solid var(--line); border-radius:12px; padding:14px; margin:9px 0; }
+    .fixture strong { display:block; font-size:15px; }
+    .fixture .scelta { margin:10px 0 0; }
+    .fixture .scelta button { margin:0; border-radius:9px; }
+    .fixture .scelta button.attivo { background:#16a34a; }
+    .fixture .scelta button.attivo.pending { background:#0f766e; box-shadow:0 0 0 2px #99f6e4; }
+    .fixture small { display:block; margin-top:8px; color:var(--muted); }
+    .schedina-card { border:1px solid #dbe5ee; background:#f8fafc; border-radius:16px; padding:18px; margin:16px 0; box-shadow:0 3px 10px #00000008; }
+    .schedina-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .schedina-head h3 { margin:0 0 7px; font-size:20px; }
+    .schedina-head p { margin:0; }
+    .savebar { background:white; border:1px solid var(--line); padding:12px; border-radius:12px; margin-top:13px; }
+    .savebar button { margin:0; font-weight:bold; }
+    .savebar p { margin:8px 0 0; font-size:13px; color:var(--muted); }
+    .savebar .ok { color:#166534; font-weight:700; }
+    .savebar .warn { color:#b45309; font-weight:700; }
+    .profile-card { padding:20px; background:#f8fafc; border:1px solid var(--line); border-radius:14px; }
+    #pannelloAdmin { margin:0; border:0; background:transparent; }
+    #pannelloAdmin .admin-content { padding:0; }
+    #pannelloAdmin .admin-content > h2 { display:none; }
+    #pannelloAdmin .admin-content .partita { border-radius:12px; }
+    #areaPronostici { margin-top:0; }
+    #elencoSchedine { display:block; }
+    #elencoSchedine > .schedina-card { text-align:left; }
+    #messaggio { position:sticky; bottom:8px; z-index:3; }
+    @media(max-width:550px){ .contenitore{padding:17px 12px;} .brand h1{font-size:24px;} .nav button{font-size:12px;padding:12px 5px;} .schedina-card{padding:12px;} .fixture{padding:12px;} }
+
   </style>
 </head>
 
 <body>
   <div class="contenitore">
 
-    <h1>🏆 Fanta Schedina</h1>
-    <p>Pronostica 4 partite e scala la classifica!</p>
+    <header class="brand"><div><h1>🏆 Fanta Schedina</h1><p>4 partite · 1 X 2 · una sola sfida</p></div><span class="pill">⚽ Gioca e pronostica</span></header>
 
     <!-- ACCESSO E REGISTRAZIONE -->
     <div id="accesso">
@@ -125,56 +191,39 @@
 
     <!-- AREA UTENTE -->
     <div id="areaGiocatore" hidden>
-
-      <h2>Benvenuto!</h2>
-      <p id="utente"></p>
-
-      <!-- PANNELLO AMMINISTRATORE -->
-      <div id="pannelloAdmin" hidden>
-
-        <h2>⚙️ Pannello amministratore</h2>
-        <p>Crea una nuova schedina</p>
-
-        <label for="titoloSchedina">
-          Titolo schedina
-        </label>
-
-        <input
-          id="titoloSchedina"
-          type="text"
-          placeholder="Es. Schedina 1"
-        >
-
-        <label for="scadenzaSchedina">
-          Scadenza pronostici
-        </label>
-
-        <input
-          id="scadenzaSchedina"
-          type="datetime-local"
-        >
-
-        <h3>Le 4 partite</h3>
-
-        <div id="campiPartite"></div>
-
-        <button id="creaSchedina">
-          Pubblica schedina
-        </button>
-
-      </div>
-
-      <div id="areaPronostici">
-        <h2>⚽ Le tue schedine</h2>
-        <p class="info">Scegli 1 (casa), X (pareggio) oppure 2 (ospite).</p>
-        <div id="elencoSchedine">Caricamento...</div>
-        <button id="aggiornaSchedine" class="secondario">Aggiorna schedine</button>
-      </div>
-
-      <button id="esci" class="secondario">
-        Esci
-      </button>
-
+      <div class="welcome"><div><h2>Benvenuto!</h2><p id="utente"></p></div></div>
+      <nav class="nav" aria-label="Menu principale">
+        <button type="button" class="active" data-view="gioca">⚽ Gioca</button>
+        <button type="button" data-view="admin" id="tabAdmin" hidden>⚙️ Gestione</button>
+        <button type="button" data-view="profilo">👤 Profilo</button>
+      </nav>
+      <section id="view-gioca" class="view">
+        <div id="areaPronostici">
+          <h2>Le tue schedine</h2>
+          <p class="info">Scegli 1 (casa), X (pareggio) o 2 (ospite). Premi <strong>Conferma pronostici</strong> per salvarli. Puoi modificarli fino alla scadenza indicata.</p>
+          <div id="elencoSchedine">Caricamento...</div>
+          <button id="aggiornaSchedine" class="secondario">↻ Aggiorna schedine</button>
+        </div>
+      </section>
+      <section id="view-admin" class="view" hidden>
+        <h2>⚙️ Gestione schedine</h2>
+        <p class="info">Area riservata all'amministratore.</p>
+        <div id="pannelloAdmin" hidden><div class="admin-content">
+          <h2>Pannello amministratore</h2>
+          <p>Crea una nuova schedina</p>
+          <label for="titoloSchedina">Titolo schedina</label>
+          <input id="titoloSchedina" type="text" placeholder="Es. Schedina 1">
+          <label for="scadenzaSchedina">Scadenza pronostici</label>
+          <input id="scadenzaSchedina" type="datetime-local">
+          <h3>Le 4 partite</h3>
+          <div id="campiPartite"></div>
+          <button id="creaSchedina">Pubblica schedina</button>
+        </div></div>
+      </section>
+      <section id="view-profilo" class="view" hidden>
+        <h2>👤 Il tuo profilo</h2>
+        <div class="profile-card"><p>Account: <strong id="emailProfilo"></strong></p><p class="info">I tuoi pronostici sono associati a questo account.</p><button id="esci" class="secondario">Esci dall'account</button></div>
+      </section>
     </div>
 
     <!-- RECUPERO PASSWORD -->
@@ -312,6 +361,8 @@
       const amministratore = !!data;
 
       $("pannelloAdmin").hidden = !amministratore;
+      $("tabAdmin").hidden = !amministratore;
+      if (!amministratore && !$("view-admin").hidden) cambiaVista("gioca");
 
     }
 
@@ -320,147 +371,130 @@
       $("areaGiocatore").hidden = !sessione;
       $("nuovaPassword").hidden = true;
 
-      $("utente").textContent =
-        sessione?.user?.email || "";
+      $("utente").textContent = sessione?.user?.email || "";
+      $("emailProfilo").textContent = sessione?.user?.email || "";
 
       verificaAmministratore(sessione?.user);
       if (sessione?.user) caricaSchedine(sessione.user);
       else { ++caricamento; $("elencoSchedine").replaceChildren(); }
     }
 
-    // PRONOSTICI 1 X 2: DISPONIBILI ANCHE ALL'AMMINISTRATORE
+    // MENU DI NAVIGAZIONE
+    function cambiaVista(vista) {
+      for (const nome of ["gioca", "admin", "profilo"]) {
+        $("view-" + nome).hidden = nome !== vista;
+      }
+      document.querySelectorAll("[data-view]").forEach(b => {
+        b.classList.toggle("active", b.dataset.view === vista);
+        b.setAttribute("aria-current", b.dataset.view === vista ? "page" : "false");
+      });
+      messaggio("");
+    }
+    document.querySelectorAll("[data-view]").forEach(b => {
+      b.onclick = () => cambiaVista(b.dataset.view);
+    });
+
+    // PRONOSTICI: LA SCELTA E' UNA BOZZA FINO ALLA CONFERMA
     async function caricaSchedine(user) {
       const richiesta = ++caricamento;
       const elenco = $("elencoSchedine");
       elenco.textContent = "Caricamento schedine...";
-
-      const { data: schedine, error } = await client
-        .from("schedine")
-        .select("id, titolo, scadenza")
-        .order("id", { ascending: false });
+      const { data: schedine, error } = await client.from("schedine")
+        .select("id,titolo,scadenza").order("id", {ascending:false});
       if (richiesta !== caricamento) return;
-      if (error) {
-        elenco.textContent = "Errore caricamento: " + error.message;
-        return;
-      }
+      if (error) { elenco.textContent = "Errore: " + error.message; return; }
       elenco.replaceChildren();
-      if (!schedine?.length) {
-        elenco.textContent = "Non ci sono ancora schedine.";
-        return;
-      }
-
+      if (!schedine?.length) { elenco.textContent = "Nessuna schedina disponibile."; return; }
       for (const schedina of schedine) {
         if (richiesta !== caricamento) return;
-        const { data: partite, error: errorePartite } = await client
-          .from("matches")
-          .select("id, posizione, home_team, away_team, match_date")
-          .eq("schedina_id", schedina.id)
-          .order("posizione");
+        const {data:partite,error:ep} = await client.from("matches")
+          .select("id,posizione,home_team,away_team,match_date")
+          .eq("schedina_id",schedina.id).order("posizione");
         if (richiesta !== caricamento) return;
-
-        const scheda = document.createElement("section");
-        scheda.className = "partita";
-        const titolo = document.createElement("h3");
-        titolo.textContent = schedina.titolo;
-        const scadenza = document.createElement("p");
-        scadenza.className = "info";
-        scadenza.textContent = "Scadenza: " +
-          new Date(schedina.scadenza).toLocaleString("it-IT");
-        scheda.append(titolo, scadenza);
-        elenco.appendChild(scheda);
-        if (errorePartite) {
-          const errore = document.createElement("p");
-          errore.textContent = errorePartite.message;
-          scheda.appendChild(errore);
-          continue;
-        }
-        if (partite.length !== 4) {
-          const avviso = document.createElement("p");
-          avviso.textContent = "Schedina incompleta: servono 4 partite.";
-          scheda.appendChild(avviso);
-          continue;
-        }
-        const ids = partite.map(p => p.id);
-        const { data: salvati, error: erroreSalvati } = await client
-          .from("predictions")
-          .select("match_id, pronostico")
-          .eq("user_id", user.id)
-          .in("match_id", ids);
+        const card=document.createElement("article"); card.className="schedina-card";
+        elenco.appendChild(card);
+        const head=document.createElement("div"); head.className="schedina-head";
+        const info=document.createElement("div");
+        const h=document.createElement("h3"); h.textContent=schedina.titolo;
+        const date=document.createElement("p"); date.className="info";
+        date.textContent="Modificabile fino al " + new Date(schedina.scadenza).toLocaleString("it-IT");
+        info.append(h,date);
+        const badge=document.createElement("span"); badge.className="pill";
+        head.append(info,badge); card.appendChild(head);
+        if(ep || partite?.length!==4){const p=document.createElement("p");p.textContent=ep?.message||"Schedina incompleta.";card.appendChild(p);continue;}
+        const {data:salvati,error:es}=await client.from("predictions")
+          .select("match_id,pronostico").eq("user_id",user.id)
+          .in("match_id",partite.map(p=>p.id));
         if (richiesta !== caricamento) return;
-        if (erroreSalvati) {
-          const avviso = document.createElement("p");
-          avviso.textContent = "Errore lettura pronostici: " + erroreSalvati.message;
-          scheda.appendChild(avviso);
-          continue;
-        }
-        const valori = new Map((salvati || []).map(p => [p.match_id, p.pronostico]));
-        const ora = Date.now();
-        const aperta = ora < new Date(schedina.scadenza).getTime();
-        const stato = document.createElement("p");
-        stato.textContent = aperta ? "🟢 Pronostici aperti" : "🔒 Pronostici chiusi";
-        scheda.appendChild(stato);
-
-        for (const partita of partite) {
-          const box = document.createElement("div");
-          box.className = "partita";
-          const nome = document.createElement("strong");
-          nome.textContent = partita.posizione + ". " +
-            partita.home_team + " - " + partita.away_team;
-          const riga = document.createElement("div");
-          riga.className = "scelta";
-          const limite = Math.min(
-            new Date(schedina.scadenza).getTime(),
-            new Date(partita.match_date).getTime()
-          );
-          const selezionato = valori.get(partita.id);
-          const nota = document.createElement("p");
-          nota.className = "info";
-          nota.textContent = selezionato ? "Salvato: " + selezionato : "Non ancora salvato";
-          const pulsanti = [];
-          for (const valore of ["1", "X", "2"]) {
-            const pulsante = document.createElement("button");
-            pulsante.textContent = valore;
-            pulsante.type = "button";
-            pulsante.disabled = Date.now() >= limite;
-            if (selezionato === valore) pulsante.classList.add("attivo");
-            pulsante.onclick = async () => {
-              if (Date.now() >= limite) {
-                return messaggio("Il tempo per pronosticare è scaduto.", true);
-              }
-              pulsanti.forEach(b => b.disabled = true);
-              const presente = valori.has(partita.id);
-              const operazione = presente
-                ? client.from("predictions")
-                    .update({ pronostico: valore })
-                    .eq("user_id", user.id).eq("match_id", partita.id)
-                    .select("id")
-                : client.from("predictions")
-                    .insert({ user_id: user.id, match_id: partita.id, pronostico: valore })
-                    .select("id");
-              const { data, error: errore } = await operazione;
-              if (errore || !data?.length) {
-                messaggio("Pronostico non salvato: " +
-                  (errore?.message || "Operazione non autorizzata"), true);
-              } else {
-                valori.set(partita.id, valore);
-                nota.textContent = "Salvato: " + valore;
-                pulsanti.forEach(b => b.classList.toggle("attivo", b.textContent === valore));
-                messaggio("Pronostico " + valore + " salvato!");
-              }
-              pulsanti.forEach(b => b.disabled = Date.now() >= limite);
-            };
-            pulsanti.push(pulsante);
-            riga.appendChild(pulsante);
+        if(es){const p=document.createElement("p");p.textContent="Errore lettura pronostici: "+es.message;card.appendChild(p);continue;}
+        const originali=new Map((salvati||[]).map(p=>[p.match_id,p.pronostico]));
+        const bozze=new Map(originali);
+        const limiti=new Map(partite.map(p=>[p.id,Math.min(new Date(schedina.scadenza).getTime(),new Date(p.match_date).getTime())]));
+        const scaduta=()=>partite.some(p=>Date.now()>=limiti.get(p.id));
+        const rows=[];
+        const bar=document.createElement("div");bar.className="savebar";
+        const salva=document.createElement("button");salva.type="button";salva.textContent="✓ Conferma pronostici";
+        const status=document.createElement("p");status.setAttribute("role","status");
+        bar.append(salva,status);
+        function aggiorna(){
+          const chiusa=scaduta();
+          badge.textContent=chiusa?"🔒 Chiusa":"🟢 Aperta";
+          badge.classList.toggle("closed",chiusa);
+          let count=0,diversi=false;
+          for(const p of partite){if(bozze.has(p.id))count++;if(bozze.get(p.id)!==originali.get(p.id))diversi=true;}
+          for(const row of rows){
+            for(const b of row.buttons){b.disabled=chiusa||salva.dataset.busy==="1";b.classList.toggle("attivo",bozze.get(row.id)===b.dataset.value);b.classList.toggle("pending",bozze.get(row.id)!==originali.get(row.id));}
+            row.note.textContent=originali.has(row.id)?"Confermato: "+originali.get(row.id):"Non ancora confermato";
           }
-          box.append(nome, riga, nota);
-          scheda.appendChild(box);
+          salva.disabled=chiusa||count!==4||!diversi||salva.dataset.busy==="1";
+          if(chiusa){status.textContent="Termine scaduto: non puoi più modificare.";status.className="";}
+          else if(count<4){status.textContent="Seleziona tutte e 4 le partite ("+count+"/4).";status.className="warn";}
+          else if(diversi){status.textContent="Modifiche non ancora salvate: premi Conferma pronostici.";status.className="warn";}
+          else {status.textContent="✓ Tutti e 4 i pronostici sono confermati.";status.className="ok";}
         }
+        for(const p of partite){
+          const box=document.createElement("div");box.className="fixture";
+          const name=document.createElement("strong");name.textContent=p.posizione+". "+p.home_team+" – "+p.away_team;
+          const r=document.createElement("div");r.className="scelta";
+          const note=document.createElement("small");
+          const buttons=[];
+          for(const v of ["1","X","2"]){
+            const b=document.createElement("button");b.type="button";b.textContent=v;b.dataset.value=v;
+            b.setAttribute("aria-label",p.home_team+" contro "+p.away_team+": "+v);
+            b.onclick=()=>{if(Date.now()>=limiti.get(p.id)){aggiorna();return;}bozze.set(p.id,v);aggiorna();};
+            buttons.push(b);r.appendChild(b);
+          }
+          box.append(name,r,note);card.appendChild(box);
+          rows.push({id:p.id,buttons,note});
+        }
+        salva.onclick=async()=>{
+          if(scaduta()){aggiorna();return;}
+          if(partite.some(p=>!bozze.has(p.id))){aggiorna();return;}
+          salva.dataset.busy="1";aggiorna();
+          let fallimento=null;
+          for(const p of partite){
+            const v=bozze.get(p.id);
+            if(originali.get(p.id)===v)continue;
+            if(Date.now()>=limiti.get(p.id)){fallimento="Il tempo per modificare i pronostici è scaduto.";break;}
+            const query=originali.has(p.id)
+              ?client.from("predictions").update({pronostico:v}).eq("user_id",user.id).eq("match_id",p.id).select("id")
+              :client.from("predictions").insert({user_id:user.id,match_id:p.id,pronostico:v}).select("id");
+            const {data,error}=await query;
+            if(error||!data?.length){fallimento=error?.message||"Salvataggio non autorizzato";break;}
+            originali.set(p.id,v);
+          }
+          salva.dataset.busy="0";aggiorna();
+          if(fallimento){messaggio("Attenzione: salvataggio incompleto. "+fallimento,true);}
+          else {messaggio("✓ Pronostici confermati e salvati!");}
+        };
+        card.appendChild(bar);
+        aggiorna();
       }
     }
 
-    $("aggiornaSchedine").onclick = async () => {
-      const { data, error } = await client.auth.getUser();
-      if (error || !data.user) return messaggio("Accedi nuovamente.", true);
+    $("aggiornaSchedine").onclick=async()=>{
+      const {data,error}=await client.auth.getUser();
+      if(error||!data.user)return messaggio("Accedi nuovamente.",true);
       await caricaSchedine(data.user);
     };
 
