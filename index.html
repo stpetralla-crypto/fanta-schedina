@@ -167,6 +167,35 @@
     .good {color:#166534;font-weight:700;}
     .muted {color:#64748b;font-size:13px;}
     @media(max-width:550px){.two-col{grid-template-columns:1fr;}}
+
+    /* Layout ordinato del pannello amministratore */
+    :root { --soft-green:#ecfdf3; }
+    .contenitore { max-width:1040px; }
+    .section-intro { padding:7px 3px 13px; }
+    .section-intro h2 { margin:5px 0 7px; font-size:25px; }
+    .eyebrow { font-size:11px; font-weight:800; letter-spacing:.1em; color:#15803d; }
+    .admin-jump { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin:9px 0 22px; }
+    .admin-jump a { text-decoration:none; color:#14532d; background:var(--soft-green); border:1px solid #bbf7d0; border-radius:11px; text-align:center; padding:13px 6px; font-weight:700; font-size:13px; }
+    .admin-jump a:hover,.admin-jump a:focus { background:#dcfce7; outline:2px solid #86efac; }
+    .admin-section { scroll-margin-top:20px; margin:19px 0; }
+    .admin-section > .panel { margin:0; padding:22px; background:#fff; border:1px solid #dce6df; box-shadow:0 3px 13px #10243a09; }
+    .admin-section > .panel h3 { font-size:19px; }
+    .admin-section-title { padding:4px 3px 12px; }
+    .admin-section-title h3 { margin:6px 0; font-size:20px; }
+    #pannelloAdmin { padding:21px; background:white; border:1px solid #dce6df; border-radius:14px; box-shadow:0 3px 13px #10243a09; }
+    #pannelloAdmin .admin-content { text-align:left; }
+    #pannelloAdmin .admin-content > p { display:none; }
+    .admin-section input,.admin-section select { margin:7px 0 12px; }
+    .admin-section button { margin-top:8px; }
+    .admin-section .item { border-color:#e2e8f0; box-shadow:0 1px 3px #00000006; }
+    .admin-section .info { line-height:1.5; }
+    .profile-card { background:white; }
+    .nav { position:relative; }
+    @media(max-width:650px) {
+      .admin-jump { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .admin-section > .panel,#pannelloAdmin { padding:15px; }
+      .section-intro h2 { font-size:22px; }
+    }
   </style>
 </head>
 
@@ -227,9 +256,22 @@
         <div id="listaClassifica" class="panel">Apri la sezione per caricare la classifica.</div>
       </section>
       <section id="view-admin" class="view" hidden>
-        <h2>⚙️ Gestione schedine</h2>
-        <p class="info">Area riservata all'amministratore.</p>
-        <div id="pannelloAdmin" hidden><div class="admin-content">
+        <div class="section-intro"><span class="eyebrow">AREA AMMINISTRATORE</span><h2>⚙️ Pannello di controllo</h2><p class="info">Gestisci i partecipanti, le squadre e le schedine da un unico posto.</p></div>
+        <div class="admin-jump" aria-label="Scorciatoie gestione">
+          <a href="#admin-autorizzazioni">🔐 Autorizzazioni</a>
+          <a href="#admin-utenti">👥 Utenti</a>
+          <a href="#admin-risultati">🥅 Risultati</a>
+          <a href="#admin-schedine">➕ Schedine</a>
+        </div>
+        <div id="admin-autorizzazioni" class="admin-section"><div class="panel"><h3>🔐 Autorizza email e squadra</h3>
+          <label for="emailDaAutorizzare">Email completa del partecipante</label><input type="email" id="emailDaAutorizzare" placeholder="nome@esempio.it">
+          <label for="squadraDaAutorizzare">Squadra assegnata</label><select id="squadraDaAutorizzare"></select>
+          <button id="autorizzaEmail">✓ Autorizza / aggiorna</button>
+          <p class="info">Puoi anche disabilitare un'email nell'elenco sottostante.</p><div id="listaAutorizzazioni"></div>
+        </div></div>
+        <div id="admin-utenti" class="admin-section"><div class="panel"><h3>👥 Utenti registrati</h3><p class="info">Solo amministratore: email, conferma e squadra associata.</p><button id="aggiornaUtenti" class="secondario">↻ Aggiorna utenti</button><div id="listaUtenti"></div></div></div>
+        <div id="admin-risultati" class="admin-section"><div class="panel"><h3>🥅 Inserisci risultati</h3><p class="info">Inserisci i gol delle partite concluse. Lascia i campi vuoti se il risultato non è disponibile.</p><button id="aggiornaRisultati" class="secondario">↻ Aggiorna partite</button><div id="listaRisultati"></div></div></div>
+        <div id="admin-schedine" class="admin-section"><div class="admin-section-title"><span class="eyebrow">NUOVA GIORNATA</span><h3>➕ Crea una schedina</h3><p class="info">Compila le quattro partite e pubblica la schedina.</p></div><div id="pannelloAdmin" hidden><div class="admin-content">
           <h2>Pannello amministratore</h2>
           <p>Crea una nuova schedina</p>
           <label for="titoloSchedina">Titolo schedina</label>
@@ -239,15 +281,7 @@
           <h3>Le 4 partite</h3>
           <div id="campiPartite"></div>
           <button id="creaSchedina">Pubblica schedina</button>
-        </div></div>
-        <div class="panel"><h3>👥 Utenti registrati</h3><p class="info">Solo amministratore: email, conferma e squadra associata.</p><button id="aggiornaUtenti" class="secondario">↻ Aggiorna utenti</button><div id="listaUtenti"></div></div>
-        <div class="panel"><h3>🔐 Autorizza email e squadra</h3>
-          <label for="emailDaAutorizzare">Email completa del partecipante</label><input type="email" id="emailDaAutorizzare" placeholder="nome@esempio.it">
-          <label for="squadraDaAutorizzare">Squadra assegnata</label><select id="squadraDaAutorizzare"></select>
-          <button id="autorizzaEmail">✓ Autorizza / aggiorna</button>
-          <p class="info">Puoi anche disabilitare un'email nell'elenco sottostante.</p><div id="listaAutorizzazioni"></div>
-        </div>
-        <div class="panel"><h3>🥅 Inserisci risultati</h3><p class="info">Inserisci i gol delle partite concluse. Lascia i campi vuoti se il risultato non è disponibile.</p><button id="aggiornaRisultati" class="secondario">↻ Aggiorna partite</button><div id="listaRisultati"></div></div>
+        </div></div></div>
       </section>
       <section id="view-profilo" class="view" hidden>
         <h2>👤 Il tuo profilo</h2>
