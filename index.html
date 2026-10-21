@@ -1,3 +1,4 @@
+```
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -225,6 +226,35 @@
     .result-fold .item{margin:9px 0}
     @media(max-width:550px){.admin-fold>summary{padding:15px;font-size:16px}.admin-fold-body{padding:12px}}
     @media(max-width:550px){.nav button{flex:1 1 29%;font-size:12px}.history-card{padding:14px}}
+
+    /* Nuova grafica Matera / LegaLize 3. L'immagine deve essere nella radice GitHub. */
+    body:has(#accesso:not([hidden])) {background:#07192e url('sfondo-matera.png') center center / cover fixed no-repeat;min-height:100vh;padding:0;}
+    body:has(#accesso:not([hidden]))::before {content:"";position:fixed;inset:0;background:linear-gradient(180deg,rgba(5,22,48,.25),rgba(5,22,48,.06) 48%,rgba(3,14,32,.64));pointer-events:none;}
+    body:has(#accesso:not([hidden]))>.contenitore {position:relative;z-index:1;max-width:none;min-height:100vh;margin:0;padding:0 16px;background:transparent;box-shadow:none;border-radius:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+    body:has(#accesso:not([hidden])) .brand {display:none;}
+    #accesso {width:min(100%,550px);margin:32px auto 20px;text-align:center;}
+    .login-brand {margin:0 auto 20px;color:#fff;text-shadow:0 3px 16px #000b;}
+    .login-trophy {display:block;font-size:65px;filter:drop-shadow(0 3px 8px #0009);}
+    .login-league {font-weight:900;font-size:clamp(42px,7vw,65px);line-height:1.03;color:#ffe2a2;letter-spacing:-2px;text-shadow:0 3px 1px #5b370b,0 8px 20px #000a;}
+    .login-subleague {font-size:24px;font-weight:800;color:white;}
+    .login-card {background:rgba(11,24,47,.72);border:1px solid #ffffffa6;border-radius:23px;backdrop-filter:blur(17px);-webkit-backdrop-filter:blur(17px);padding:29px clamp(20px,5vw,52px) 26px;box-shadow:0 18px 60px #0008;color:white;}
+    .login-title {font-size:clamp(32px,6vw,49px);font-weight:900;line-height:1.13;}
+    .login-subtitle {font-size:19px;color:#e2e8f0;margin-top:7px;}
+    .login-divider {color:#f6c45c;font-size:24px;margin:10px 0;}
+    .login-caption {font-size:16px;color:#f1f5f9;margin:10px 0 17px;}
+    #accesso input {background:#fffffff2;border:1px solid #fff;color:#14243b;padding:15px 18px;border-radius:11px;margin:6px 0;font-size:16px;}
+    #accesso input:focus {outline:3px solid #f6c45c;}
+    #accesso button {font-weight:800;border-radius:11px;margin:8px 0;padding:14px;background:#009b58;border:1px solid #5ee7a6;box-shadow:0 4px 14px #001c1580;}
+    #accesso button.secondario {background:#ffffff1a;border:1px solid #ffffff6b;color:#fff;box-shadow:none;}
+    #accesso button:hover {filter:brightness(1.1);}
+    .login-footnote {font-size:13px;color:#f5d990;margin:18px 0 0;}
+    .login-bottom {color:white;font-size:14px;letter-spacing:5px;font-weight:900;text-shadow:0 2px 8px #000;line-height:1.9;margin-top:12px;}
+    .login-bottom span {font-size:11px;letter-spacing:4px;}
+    .login-bottom small {display:block;font-size:12px;letter-spacing:3px;color:#ffd36f;}
+    .italian-stripe {width:155px;height:5px;margin:8px auto;background:linear-gradient(90deg,#00a859 0 33%,#fff 33% 66%,#e52e37 66%);}
+    body:has(#accesso:not([hidden])) #messaggio:not(:empty) {position:relative;background:rgba(10,23,42,.88);color:#fff;border:1px solid #ffffff7a;max-width:550px;width:100%;}
+    body:not(:has(#accesso:not([hidden]))) {background:linear-gradient(140deg,#e8f4ed,#f1f5f9 65%);}
+    @media(max-width:550px) {body:has(#accesso:not([hidden])) {background-attachment:scroll;}#accesso{margin:14px auto}.login-brand{margin-bottom:12px}.login-trophy{font-size:46px}.login-card{padding:20px 17px}.login-title{font-size:32px}.login-subleague{font-size:18px}}
   </style>
 </head>
 
@@ -235,6 +265,8 @@
 
     <!-- ACCESSO E REGISTRAZIONE -->
     <div id="accesso">
+      <div class="login-brand"><span class="login-trophy">🏆</span><div class="login-league">LegaLize 3</div><div class="login-subleague">🇮🇹 ZeLeague 🇮🇹</div></div>
+      <div class="login-card"><div class="login-title">Fanta Schedina</div><div class="login-subtitle">LegaLize 3 – ZeLeague</div><div class="login-divider">⚽</div><p class="login-caption">Accedi con il tuo account autorizzato</p>
 
       <input
         id="email"
@@ -259,7 +291,8 @@
       <button id="recupera" class="secondario">
         Password dimenticata?
       </button>
-
+      <p class="login-footnote">🛡️ Solo account autorizzati &nbsp; · &nbsp; 🏆 Classifica di lega</p>
+      </div><div class="login-bottom">FANTA SCHEDINA<br><span>LEGA LIZE 3 · ZE LEAGUE</span><div class="italian-stripe"></div><small>✦ MATERA ✦</small></div>
     </div>
 
     <!-- AREA UTENTE -->
@@ -476,7 +509,7 @@
 
       $("pannelloAdmin").hidden = !amministratore;
       $("tabAdmin").hidden = !amministratore;
-      if (!amministratore && !$('"view-admin"').hidden) cambiaVista("gioca");
+      if (!amministratore && !$("view-admin").hidden) cambiaVista("gioca");
       if (amministratore) { await caricaSquadre(); await caricaGestione(); }
 
     }
@@ -1153,3 +1186,4 @@
   </script>
 </body>
 </html>
+```
