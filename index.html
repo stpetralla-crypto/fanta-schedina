@@ -56,6 +56,11 @@
 
     .secondario { background: #475569; }
 
+    .scelta { display: flex; gap: 8px; margin-top: 10px; }
+    .scelta button { background: #e2e8f0; color: #172033; font-weight: bold; }
+    .scelta button.attivo { background: #16a34a; color: white; }
+    .scelta button:disabled { cursor: not-allowed; }
+    .info { color: #475569; font-size: 14px; }
     .partita {
       border: 1px solid #cbd5e1;
       border-radius: 10px;
@@ -159,9 +164,12 @@
 
       </div>
 
-      <p id="testoGiocatore">
-        Presto potrai giocare le tue schedine.
-      </p>
+      <div id="areaPronostici">
+        <h2>⚽ Le tue schedine</h2>
+        <p class="info">Scegli 1 (casa), X (pareggio) oppure 2 (ospite).</p>
+        <div id="elencoSchedine">Caricamento...</div>
+        <button id="aggiornaSchedine" class="secondario">Aggiorna schedine</button>
+      </div>
 
       <button id="esci" class="secondario">
         Esci
@@ -215,6 +223,7 @@
 
     let recuperoPassword = false;
     let controlloUtente = 0;
+    let caricamento = 0;
 
     function messaggio(testo, errore = false) {
       $("messaggio").textContent = testo;
@@ -279,7 +288,7 @@
       const richiesta = ++controlloUtente;
 
       $("pannelloAdmin").hidden = true;
-      $("testoGiocatore").hidden = false;
+
 
       if (!user) return;
 
@@ -303,7 +312,7 @@
       const amministratore = !!data;
 
       $("pannelloAdmin").hidden = !amministratore;
-      $("testoGiocatore").hidden = amministratore;
+
     }
 
     function mostraSessione(sessione) {
@@ -315,7 +324,145 @@
         sessione?.user?.email || "";
 
       verificaAmministratore(sessione?.user);
+      if (sessione?.user) caricaSchedine(sessione.user);
+      else { ++caricamento; $("elencoSchedine").replaceChildren(); }
     }
+
+    // PRONOSTICI 1 X 2: DISPONIBILI ANCHE ALL'AMMINISTRATORE
+    async function caricaSchedine(user) {
+      const richiesta = ++caricamento;
+      const elenco = $("elencoSchedine");
+      elenco.textContent = "Caricamento schedine...";
+
+      const { data: schedine, error } = await client
+        .from("schedine")
+        .select("id, titolo, scadenza")
+        .order("id", { ascending: false });
+      if (richiesta !== caricamento) return;
+      if (error) {
+        elenco.textContent = "Errore caricamento: " + error.message;
+        return;
+      }
+      elenco.replaceChildren();
+      if (!schedine?.length) {
+        elenco.textContent = "Non ci sono ancora schedine.";
+        return;
+      }
+
+      for (const schedina of schedine) {
+        if (richiesta !== caricamento) return;
+        const { data: partite, error: errorePartite } = await client
+          .from("matches")
+          .select("id, posizione, home_team, away_team, match_date")
+          .eq("schedina_id", schedina.id)
+          .order("posizione");
+        if (richiesta !== caricamento) return;
+
+        const scheda = document.createElement("section");
+        scheda.className = "partita";
+        const titolo = document.createElement("h3");
+        titolo.textContent = schedina.titolo;
+        const scadenza = document.createElement("p");
+        scadenza.className = "info";
+        scadenza.textContent = "Scadenza: " +
+          new Date(schedina.scadenza).toLocaleString("it-IT");
+        scheda.append(titolo, scadenza);
+        elenco.appendChild(scheda);
+        if (errorePartite) {
+          const errore = document.createElement("p");
+          errore.textContent = errorePartite.message;
+          scheda.appendChild(errore);
+          continue;
+        }
+        if (partite.length !== 4) {
+          const avviso = document.createElement("p");
+          avviso.textContent = "Schedina incompleta: servono 4 partite.";
+          scheda.appendChild(avviso);
+          continue;
+        }
+        const ids = partite.map(p => p.id);
+        const { data: salvati, error: erroreSalvati } = await client
+          .from("predictions")
+          .select("match_id, pronostico")
+          .eq("user_id", user.id)
+          .in("match_id", ids);
+        if (richiesta !== caricamento) return;
+        if (erroreSalvati) {
+          const avviso = document.createElement("p");
+          avviso.textContent = "Errore lettura pronostici: " + erroreSalvati.message;
+          scheda.appendChild(avviso);
+          continue;
+        }
+        const valori = new Map((salvati || []).map(p => [p.match_id, p.pronostico]));
+        const ora = Date.now();
+        const aperta = ora < new Date(schedina.scadenza).getTime();
+        const stato = document.createElement("p");
+        stato.textContent = aperta ? "🟢 Pronostici aperti" : "🔒 Pronostici chiusi";
+        scheda.appendChild(stato);
+
+        for (const partita of partite) {
+          const box = document.createElement("div");
+          box.className = "partita";
+          const nome = document.createElement("strong");
+          nome.textContent = partita.posizione + ". " +
+            partita.home_team + " - " + partita.away_team;
+          const riga = document.createElement("div");
+          riga.className = "scelta";
+          const limite = Math.min(
+            new Date(schedina.scadenza).getTime(),
+            new Date(partita.match_date).getTime()
+          );
+          const selezionato = valori.get(partita.id);
+          const nota = document.createElement("p");
+          nota.className = "info";
+          nota.textContent = selezionato ? "Salvato: " + selezionato : "Non ancora salvato";
+          const pulsanti = [];
+          for (const valore of ["1", "X", "2"]) {
+            const pulsante = document.createElement("button");
+            pulsante.textContent = valore;
+            pulsante.type = "button";
+            pulsante.disabled = Date.now() >= limite;
+            if (selezionato === valore) pulsante.classList.add("attivo");
+            pulsante.onclick = async () => {
+              if (Date.now() >= limite) {
+                return messaggio("Il tempo per pronosticare è scaduto.", true);
+              }
+              pulsanti.forEach(b => b.disabled = true);
+              const presente = valori.has(partita.id);
+              const operazione = presente
+                ? client.from("predictions")
+                    .update({ pronostico: valore })
+                    .eq("user_id", user.id).eq("match_id", partita.id)
+                    .select("id")
+                : client.from("predictions")
+                    .insert({ user_id: user.id, match_id: partita.id, pronostico: valore })
+                    .select("id");
+              const { data, error: errore } = await operazione;
+              if (errore || !data?.length) {
+                messaggio("Pronostico non salvato: " +
+                  (errore?.message || "Operazione non autorizzata"), true);
+              } else {
+                valori.set(partita.id, valore);
+                nota.textContent = "Salvato: " + valore;
+                pulsanti.forEach(b => b.classList.toggle("attivo", b.textContent === valore));
+                messaggio("Pronostico " + valore + " salvato!");
+              }
+              pulsanti.forEach(b => b.disabled = Date.now() >= limite);
+            };
+            pulsanti.push(pulsante);
+            riga.appendChild(pulsante);
+          }
+          box.append(nome, riga, nota);
+          scheda.appendChild(box);
+        }
+      }
+    }
+
+    $("aggiornaSchedine").onclick = async () => {
+      const { data, error } = await client.auth.getUser();
+      if (error || !data.user) return messaggio("Accedi nuovamente.", true);
+      await caricaSchedine(data.user);
+    };
 
     // REGISTRAZIONE
 
@@ -571,6 +718,7 @@
         $("titoloSchedina").value = "";
         $("scadenzaSchedina").value = "";
         preparaPartite();
+        caricaSchedine(utente.user);
 
       } catch (errore) {
         messaggio(
