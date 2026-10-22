@@ -326,7 +326,28 @@
     }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
     .squadra-personale{border:2px solid #25a66a!important;background:rgba(37,166,106,.10)!important;border-radius:12px;padding:14px}
-</style>
+
+    /* Classifica: elegante, sintetica, senza risultati delle partite */
+    .ranking-intro{background:linear-gradient(120deg,#14532d,#15803d);color:white;padding:23px;border-radius:19px;margin:16px 0;box-shadow:0 10px 25px #14532d22}
+    .ranking-intro h3{color:white;margin:0 0 6px;font-size:21px}.ranking-intro p{margin:0;color:#dcfce7;font-size:13px}
+    .ranking-grid{display:grid;gap:11px;margin:17px 0}
+    .ranking-card{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:14px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:17px;box-shadow:0 3px 12px #0f172a09}
+    .ranking-card.mine{background:#f0fdf4;border:2px solid #22c55e;box-shadow:0 5px 18px #16a34a18}
+    .ranking-rank{display:grid;place-items:center;width:51px;height:51px;border-radius:14px;background:#f1f5f9;color:#334155;font-size:22px;font-weight:900}
+    .ranking-card:nth-child(1) .ranking-rank{background:#fef3c7;color:#92400e}.ranking-card:nth-child(2) .ranking-rank{background:#e2e8f0;color:#475569}.ranking-card:nth-child(3) .ranking-rank{background:#ffedd5;color:#9a3412}
+    .ranking-name{font-weight:850;color:#0f172a;font-size:17px;overflow-wrap:anywhere}.ranking-meta{font-size:12px;color:#64748b;margin-top:5px}.ranking-me{display:inline-block;font-size:11px;font-weight:800;color:#166534;background:#dcfce7;border-radius:99px;padding:3px 8px;margin-top:6px}
+    .ranking-score{text-align:right;min-width:75px}.ranking-score strong{display:block;font-size:26px;color:#166534;line-height:1.1}.ranking-score span{font-size:11px;color:#64748b;font-weight:700}
+    /* Archivio: giornate richiudibili, per non allungare la pagina col tempo */
+    .archive-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0}.archive-count{color:#64748b;font-size:13px}
+    .archive-day{border:1px solid #dbe5ee;border-radius:17px;background:#fff;margin:12px 0;overflow:hidden;box-shadow:0 4px 15px #0f172a0a}
+    .archive-day>summary{cursor:pointer;padding:19px;display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none}.archive-day>summary::-webkit-details-marker,.archive-team>summary::-webkit-details-marker{display:none}
+    .archive-day>summary:after,.archive-team>summary:after{content:'⌄';font-size:21px;color:#64748b}.archive-day[open]>summary:after,.archive-team[open]>summary:after{content:'⌃'}
+    .archive-day-title{font-size:18px;font-weight:850;color:#14532d}.archive-subtitle{font-size:12px;color:#64748b;margin-top:4px}.archive-content{padding:0 16px 17px;border-top:1px solid #e2e8f0}
+    .archive-team{border:1px solid #e2e8f0;border-radius:12px;margin-top:12px;overflow:hidden}.archive-team.mine{border:2px solid #22c55e;background:#f0fdf4}
+    .archive-team>summary{cursor:pointer;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none}.archive-team-name{font-weight:800;color:#0f172a}.archive-team-score{font-size:12px;color:#475569;font-weight:750}.archive-matches{background:white;padding:2px 14px 12px;border-top:1px solid #e2e8f0}.archive-match{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9}.archive-match:last-child{border:0}.archive-fixture{font-size:13px;font-weight:750;color:#334155}.archive-pick{font-size:12px;color:#64748b;margin-top:4px}.archive-final{font-size:13px;font-weight:800;white-space:nowrap}
+    @media(max-width:550px){.ranking-card{grid-template-columns:44px minmax(0,1fr) auto;gap:9px;padding:12px}.ranking-rank{width:42px;height:42px;font-size:18px}.ranking-name{font-size:14px}.ranking-score strong{font-size:22px}.archive-day>summary{padding:15px}}
+
+  </style>
 </head>
 
 <body>
@@ -390,7 +411,7 @@
         <div id="listaStorico" aria-live="polite">Caricamento...</div>
       </section>
       <section id="view-classifica" class="view" hidden>
-        <h2>🏆 Classifica</h2><p class="info">Punti delle schedine concluse: una sola riga per squadra.</p>
+        <h2>🏆 Classifica della lega</h2><p class="info">La graduatoria generale delle squadre. Risultati e pronostici sono conservati esclusivamente nello Storico.</p>
         <button id="ricaricaClassifica" class="secondario">↻ Aggiorna classifica</button>
         <div id="listaClassifica" class="panel">Apri la sezione per caricare la classifica.</div>
       </section>
@@ -733,16 +754,16 @@
       }
     }
 
-    // STORICO DELLE SQUADRE: dati disponibili soltanto dopo la scadenza.
+    // ARCHIVIO: una sezione per ogni schedina, richiudibile e scalabile.
     let richiestaStorico=0;
     async function caricaStorico(user){
       const richiesta=++richiestaStorico;
-      const target=$("listaStorico");target.textContent="Caricamento storico...";
+      const target=$("listaStorico");target.textContent="Caricamento archivio...";
       const {data,error}=await client.rpc("dettaglio_pronostici_squadre");
       if(richiesta!==richiestaStorico)return;
       target.replaceChildren();
       if(error){target.textContent="Storico non disponibile: "+error.message;return;}
-      if(!data?.length){target.textContent="Nessuna schedina scaduta e confermata da una squadra.";return;}
+      if(!data?.length){target.append(el('div','📚 Nessuna schedina archiviata per il momento.','empty-state'));return;}
       const giornate=new Map();
       for(const r of data){
         if(!giornate.has(r.schedina_id))giornate.set(r.schedina_id,{titolo:r.titolo_schedina,squadre:new Map()});
@@ -750,25 +771,41 @@
         if(!g.squadre.has(r.squadra_id))g.squadre.set(r.squadra_id,{nome:r.nome_squadra,mia:r.mia_squadra,righe:[]});
         g.squadre.get(r.squadra_id).righe.push(r);
       }
-      for(const g of giornate.values()){
-        const sezione=el('article',undefined,'history-card');
-        sezione.append(el('h3','📅 '+g.titolo));
+      const bar=el('div',undefined,'archive-toolbar');
+      bar.append(el('strong','🗂️ Archivio giornate'));
+      bar.append(el('span',giornate.size+' '+(giornate.size===1?'schedina archiviata':'schedine archiviate'),'archive-count'));
+      target.append(bar);
+      let indice=0;
+      for(const [id,g] of giornate){
+        const day=el('details',undefined,'archive-day');day.open=indice++===0;
+        const head=el('summary');const label=el('div');
+        label.append(el('div','📅 '+g.titolo,'archive-day-title'));
+        label.append(el('div',g.squadre.size+' '+(g.squadre.size===1?'squadra':'squadre')+' partecipanti · Giornata #'+id,'archive-subtitle'));
+        head.append(label);day.append(head);
+        const content=el('div',undefined,'archive-content');
         const squadre=[...g.squadre.values()].sort((a,b)=>Number(b.mia)-Number(a.mia)||a.nome.localeCompare(b.nome));
         for(const squadra of squadre){
           const righe=squadra.righe.sort((a,b)=>a.posizione-b.posizione);
           const completata=righe.length===4&&righe.every(r=>r.risultato!==null);
           const corretti=completata?righe.filter(r=>r.esatto===true).length:null;
           const punti=completata?(corretti===4?10:corretti===3?5:0):null;
-          const card=el('div',undefined,'item'+(squadra.mia?' squadra-personale':''));
-          card.append(el('strong',(squadra.mia?'🟢 LA TUA SQUADRA · ':'')+squadra.nome));
-          card.append(el('p',completata?('🎯 '+corretti+'/4 esatti · 🏆 '+punti+' punti'):'⏳ Risultati in attesa'));
+          const team=el('details',undefined,'archive-team'+(squadra.mia?' mine':''));
+          const summary=el('summary');const name=el('div');
+          name.append(el('div',(squadra.mia?'🟢 ':'')+squadra.nome,'archive-team-name'));
+          if(squadra.mia)name.append(el('span','LA TUA SQUADRA','ranking-me'));
+          summary.append(name,el('span',completata?'🎯 '+corretti+'/4 · '+punti+' pt':'⏳ Risultati in attesa','archive-team-score'));
+          team.append(summary);
+          const matches=el('div',undefined,'archive-matches');
           for(const r of righe){
-            const stato=r.esatto===null?'⏳':r.esatto?'✅':'❌';
-            card.append(el('div',stato+' '+r.partita+' · '+(r.pronostico||'—')+' · '+(r.risultato??'Risultato in attesa'),'history-match'));
+            const match=el('div',undefined,'archive-match');const left=el('div');
+            left.append(el('div',r.partita,'archive-fixture'));
+            left.append(el('div','Pronostico: '+(r.pronostico||'—'),'archive-pick'));
+            match.append(left,el('div',(r.esatto===null?'⏳':r.esatto?'✅':'❌')+' '+(r.risultato??'Da giocare'),'archive-final'));
+            matches.append(match);
           }
-          sezione.append(card);
+          team.append(matches);content.append(team);
         }
-        target.append(sezione);
+        day.append(content);target.append(day);
       }
     }
     $("aggiornaStorico").onclick=()=>utenteAttivo&&caricaStorico(utenteAttivo);
@@ -827,48 +864,35 @@
       messaggio("Password aggiornata con successo.");
     };
     async function caricaClassifica(){
-      const target=$("listaClassifica");target.textContent="Caricamento...";
-      const [classifica,dettagli]=await Promise.all([
-        client.rpc("classifica_pubblica"),
-        client.rpc("dettaglio_pronostici_squadre")
+      const target=$("listaClassifica");target.textContent="Caricamento classifica...";
+      const [classifica,squadra]=await Promise.all([
+        client.rpc("classifica_pubblica"),client.rpc("mia_squadra")
       ]);
       target.replaceChildren();
       if(classifica.error){target.textContent="Classifica non disponibile: "+classifica.error.message;return;}
-      if(!classifica.data?.length){target.textContent="Nessun punteggio disponibile.";return;}
-      if(dettagli.error){target.append(el('p','Dettagli pronostici non disponibili: '+dettagli.error.message));}
-      const perSquadra=new Map();
-      for(const r of dettagli.data||[]){
-        if(!perSquadra.has(r.nome_squadra))perSquadra.set(r.nome_squadra,{mia:false,giornate:new Map()});
-        const info=perSquadra.get(r.nome_squadra);
-        info.mia=info.mia||r.mia_squadra===true;
-        if(!info.giornate.has(r.schedina_id))info.giornate.set(r.schedina_id,[]);
-        info.giornate.get(r.schedina_id).push(r);
-      }
+      if(!classifica.data?.length){target.textContent="Nessuna squadra disponibile.";return;}
+      const mia=(squadra.data||[])[0]?.nome_squadra||null;
+      const intro=el('div',undefined,'ranking-intro');
+      intro.append(el('h3','🏆 La corsa al titolo'));
+      intro.append(el('p','Classifica generale · '+classifica.data.length+' squadre · I dettagli delle partite sono nello Storico'));
+      target.append(intro);
+      const grid=el('div',undefined,'ranking-grid');
       for(const [i,p] of classifica.data.entries()){
-        const info=perSquadra.get(p.nome_squadra);
-        const card=el('div',undefined,'item'+(info?.mia?' squadra-personale':''));
-        card.append(el('strong',(i+1)+'° · '+(info?.mia?'🟢 LA TUA SQUADRA · ':'')+(p.nome_squadra||'Squadra da assegnare')));
-        card.append(el('p',(p.punti_totali??0)+' punti · '+(p.schedine_giocate??0)+' schedine'));
-        if(info){
-          for(const righe of info.giornate.values()){
-            const finite=righe.length===4&&righe.every(r=>r.risultato!==null);
-            const n=righe.filter(r=>r.esatto===true).length;
-            const r=righe[0];
-            card.append(el('p','🎯 '+r.titolo_schedina+': '+(finite?n+'/4 pronostici esatti':'risultati in attesa'),'muted'));
-          }
-          const btn=el('button','👀 Vedi le 4 partite','secondario');
-          const corpo=el('div');corpo.hidden=true;
-          btn.onclick=()=>{corpo.hidden=!corpo.hidden;btn.textContent=corpo.hidden?'👀 Vedi le 4 partite':'Nascondi dettagli';};
-          for(const righe of info.giornate.values()){
-            corpo.append(el('strong',righe[0].titolo_schedina));
-            for(const r of [...righe].sort((a,b)=>a.posizione-b.posizione)){
-              corpo.append(el('div',(r.esatto===null?'⏳':r.esatto?'✅':'❌')+' '+r.partita+' · '+(r.pronostico||'—')+' · '+(r.risultato??'In attesa'),'history-match'));
-            }
-          }
-          card.append(btn,corpo);
-        }
-        target.append(card);
+        const isMine=mia!==null&&mia===p.nome_squadra;
+        const card=el('div',undefined,'ranking-card'+(isMine?' mine':''));
+        card.append(el('div',i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1)+'°','ranking-rank'));
+        const main=el('div');
+        main.append(el('div',p.nome_squadra||'Squadra da assegnare','ranking-name'));
+        const n=Number(p.schedine_giocate||0);
+        main.append(el('div',n+' '+(n===1?'schedina giocata':'schedine giocate'),'ranking-meta'));
+        if(isMine)main.append(el('span','● LA TUA SQUADRA','ranking-me'));
+        card.append(main);
+        const score=el('div',undefined,'ranking-score');
+        score.append(el('strong',p.punti_totali??0),el('span','PUNTI'));
+        card.append(score);grid.append(card);
       }
+      target.append(grid);
+      target.append(el('p','📚 Vuoi controllare pronostici, risultati e quanti ne ha indovinati ogni squadra? Apri la sezione Storico.','muted'));
     }
     $("ricaricaClassifica").onclick=caricaClassifica;
     async function caricaGestione(){
