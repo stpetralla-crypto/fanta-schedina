@@ -389,7 +389,7 @@
         <div id="listaStorico" aria-live="polite">Caricamento...</div>
       </section>
       <section id="view-classifica" class="view" hidden>
-        <h2>🏆 Classifica</h2><p class="info">Punti delle schedine concluse, per giocatore.</p>
+        <h2>🏆 Classifica</h2><p class="info">Punti delle schedine concluse: una sola riga per squadra.</p>
         <button id="ricaricaClassifica" class="secondario">↻ Aggiorna classifica</button>
         <div id="listaClassifica" class="panel">Apri la sezione per caricare la classifica.</div>
       </section>
@@ -685,11 +685,11 @@
             for(const b of row.buttons){b.disabled=chiusa||salva.dataset.busy==="1";b.classList.toggle("attivo",bozze.get(row.id)===b.dataset.value);b.classList.toggle("pending",bozze.get(row.id)!==originali.get(row.id));}
             row.note.textContent=originali.has(row.id)?"Confermato: "+originali.get(row.id):"Non ancora confermato";
           }
-          salva.disabled=chiusa||count!==4||!diversi||salva.dataset.busy==="1";
+          salva.disabled=chiusa||count!==4||salva.dataset.busy==="1";
           if(chiusa){status.textContent="Termine scaduto: non puoi più modificare.";status.className="";}
           else if(count<4){status.textContent="Seleziona tutte e 4 le partite ("+count+"/4).";status.className="warn";}
           else if(diversi){status.textContent="Modifiche non ancora salvate: premi Conferma pronostici.";status.className="warn";}
-          else {status.textContent="✓ Tutti e 4 i pronostici sono confermati.";status.className="ok";}
+          else {status.textContent="✓ Puoi confermare anche senza modifiche: la conferma più recente della squadra sarà quella valida.";status.className="ok";}
         }
         for(const p of partite){
           const box=document.createElement("div");box.className="fixture";
@@ -707,24 +707,22 @@
           rows.push({id:p.id,buttons,note});
         }
         salva.onclick=async()=>{
-          if(scaduta()){aggiorna();return;}
-          if(partite.some(p=>!bozze.has(p.id))){aggiorna();return;}
+          if(scaduta()||partite.some(p=>!bozze.has(p.id))){aggiorna();return;}
           salva.dataset.busy="1";aggiorna();
-          let fallimento=null;
-          for(const p of partite){
-            const v=bozze.get(p.id);
-            if(originali.get(p.id)===v)continue;
-            if(Date.now()>=limiti.get(p.id)){fallimento="Il tempo per modificare i pronostici è scaduto.";break;}
-            const query=originali.has(p.id)
-              ?client.from("predictions").update({pronostico:v}).eq("user_id",user.id).eq("match_id",p.id).select("id")
-              :client.from("predictions").insert({user_id:user.id,match_id:p.id,pronostico:v}).select("id");
-            const {data,error}=await query;
-            if(error||!data?.length){fallimento=error?.message||"Salvataggio non autorizzato";break;}
-            originali.set(p.id,v);
+          const valori=partite.map(p=>bozze.get(p.id));
+          const {error}=await client.rpc("conferma_schedina_squadra",{
+            p_schedina_id:schedina.id,
+            p_pronostici:valori
+          });
+          salva.dataset.busy="0";
+          if(error){
+            messaggio("Pronostici non confermati: "+error.message,true);
+            aggiorna();
+            return;
           }
-          salva.dataset.busy="0";aggiorna();
-          if(fallimento){messaggio("Attenzione: salvataggio incompleto. "+fallimento,true);}
-          else {messaggio("✓ Pronostici confermati e salvati!");}
+          for(const p of partite)originali.set(p.id,bozze.get(p.id));
+          aggiorna();
+          messaggio("✓ Schedina completa confermata! Vale l'ultima conferma della squadra prima della scadenza.");
         };
         card.appendChild(bar);
         aggiorna();
@@ -845,7 +843,7 @@
       if(!data?.length){target.textContent="Nessun punteggio disponibile.";return;}
       for(const [i,p] of data.entries()){
         const card=el("div",undefined,"item");
-        card.append(el("strong",(i+1)+"° · "+(p.nome_squadra||"Squadra da assegnare")+" — "+(p.username||"Giocatore")),el("p",(p.punti_totali??0)+" punti · "+(p.schedine_giocate??0)+" schedine"));
+        card.append(el("strong",(i+1)+"° · "+(p.nome_squadra||"Squadra da assegnare")),el("p",(p.punti_totali??0)+" punti · "+(p.schedine_giocate??0)+" schedine"));
         target.append(card);
       }
     }
