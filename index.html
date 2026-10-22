@@ -347,6 +347,40 @@
     .archive-team>summary{cursor:pointer;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none}.archive-team-name{font-weight:800;color:#0f172a}.archive-team-score{font-size:12px;color:#475569;font-weight:750}.archive-matches{background:white;padding:2px 14px 12px;border-top:1px solid #e2e8f0}.archive-match{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9}.archive-match:last-child{border:0}.archive-fixture{font-size:13px;font-weight:750;color:#334155}.archive-pick{font-size:12px;color:#64748b;margin-top:4px}.archive-final{font-size:13px;font-weight:800;white-space:nowrap}
     @media(max-width:550px){.ranking-card{grid-template-columns:44px minmax(0,1fr) auto;gap:9px;padding:12px}.ranking-rank{width:42px;height:42px;font-size:18px}.ranking-name{font-size:14px}.ranking-score strong{font-size:22px}.archive-day>summary{padding:15px}}
 
+
+    /* Edizione stadio: ritocchi estetici, nessuna modifica alla logica */
+    :root{--pitch:#12643a;--night:#0b2630;--gold:#e7b64d}
+    body:not(:has(#accesso:not([hidden]))){background:radial-gradient(ellipse at 12% 0%,#d4ebdb 0%,transparent 40%),linear-gradient(155deg,#edf5ef,#e7eef2 78%)}
+    .contenitore{box-shadow:0 18px 55px #123c3020}
+    .brand{background:linear-gradient(115deg,#0d322c,#126b43);border-radius:18px;padding:17px 20px;margin-bottom:15px;box-shadow:0 10px 26px #103d3126}
+    .brand h1,.brand p{color:#fff}.brand .pill{background:#f4d58a;color:#244126;border:0}
+    .nav{border-radius:15px;background:#e0eee6;padding:6px;box-shadow:inset 0 1px 2px #0f342316}
+    .nav button{border-radius:11px;font-weight:750;transition:transform .16s,box-shadow .16s}
+    .nav button:hover{transform:translateY(-1px)}
+    .ranking-intro{position:relative;overflow:hidden;background:repeating-linear-gradient(90deg,#115b38 0,#115b38 55px,#146740 55px,#146740 110px);padding:24px 24px 22px;border:1px solid #ffffff30;box-shadow:0 12px 28px #0c51382b}
+    .ranking-intro:before{content:'⚽';position:absolute;right:18px;top:5px;font-size:75px;opacity:.16;transform:rotate(-16deg)}
+    .ranking-intro h3{font-size:23px;letter-spacing:-.5px;position:relative}.ranking-intro p{position:relative;max-width:80%;line-height:1.5}
+    .ranking-grid{gap:9px}
+    .ranking-card{position:relative;border-radius:15px;border:1px solid #dce9e1;border-left:5px solid #c8d9cf;padding:15px 17px;transition:box-shadow .18s,transform .18s;box-shadow:0 3px 12px #153b280a}
+    .ranking-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px #153b2818}
+    .ranking-card:nth-child(1){border-left-color:#e6b64d;background:linear-gradient(100deg,#fff9e9,#fff 60%)}
+    .ranking-card:nth-child(2){border-left-color:#94a3b8}.ranking-card:nth-child(3){border-left-color:#cc8956}
+    .ranking-card.mine{border-color:#1fa66a;border-left-width:5px;background:linear-gradient(100deg,#e7faee,#f7fff9 65%)}
+    .ranking-rank{border-radius:13px}.ranking-name{letter-spacing:-.3px}.ranking-score strong{font-variant-numeric:tabular-nums}
+    .archive-toolbar{background:#e8f3eb;border:1px solid #d2e8d9;border-radius:12px;padding:10px 13px;margin-bottom:12px}
+    .archive-day{border-radius:13px;margin:8px 0;border-color:#dce8e0;box-shadow:0 2px 9px #0f172a08}
+    .archive-day>summary{padding:12px 15px;background:#f8fbf9}
+    .archive-day[open]{border-color:#7fbaa0;box-shadow:0 6px 19px #1a633015}
+    .archive-day[open]>summary{background:linear-gradient(105deg,#e5f4e9,#f8fcf9)}
+    .archive-day-title{font-size:15px;letter-spacing:-.2px}.archive-subtitle{font-size:11px;margin-top:2px}
+    .archive-day>summary:after{font-size:18px}.archive-content{padding:0 11px 12px}
+    .archive-team{margin-top:8px;border-radius:10px}.archive-team>summary{padding:10px 12px}
+    .archive-team-name{font-size:13px}.archive-team-score{font-size:11px;text-align:right}
+    .archive-matches{padding:2px 11px 7px}.archive-match{padding:8px 0;gap:8px}
+    .archive-fixture{font-size:12px}.archive-pick{font-size:11px;margin-top:2px}.archive-final{font-size:12px}
+    .archive-team .ranking-me{font-size:9px;padding:2px 6px}
+    @media(max-width:550px){.brand{padding:13px 12px}.ranking-intro{padding:18px}.ranking-intro h3{font-size:20px}.ranking-card{padding:11px 10px}.archive-day>summary{padding:11px 12px}.archive-day-title{font-size:14px}.archive-team-score{font-size:10px}.archive-content{padding:0 8px 9px}}
+
   </style>
 </head>
 
@@ -772,14 +806,14 @@
         g.squadre.get(r.squadra_id).righe.push(r);
       }
       const bar=el('div',undefined,'archive-toolbar');
-      bar.append(el('strong','🗂️ Archivio giornate'));
+      bar.append(el('strong','🏟️ Archivio delle giornate'));
       bar.append(el('span',giornate.size+' '+(giornate.size===1?'schedina archiviata':'schedine archiviate'),'archive-count'));
       target.append(bar);
       let indice=0;
       for(const [id,g] of giornate){
         const day=el('details',undefined,'archive-day');day.open=indice++===0;
         const head=el('summary');const label=el('div');
-        label.append(el('div','📅 '+g.titolo,'archive-day-title'));
+        label.append(el('div',(day.open?'🟢 ULTIMA · ':'📅 ')+g.titolo,'archive-day-title'));
         label.append(el('div',g.squadre.size+' '+(g.squadre.size===1?'squadra':'squadre')+' partecipanti · Giornata #'+id,'archive-subtitle'));
         head.append(label);day.append(head);
         const content=el('div',undefined,'archive-content');
