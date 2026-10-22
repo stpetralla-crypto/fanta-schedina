@@ -995,8 +995,8 @@
         const item=el("div",undefined,"item");
         item.append(el("strong",r.nome_squadra));
         item.append(el("p",r.ultima_modifica_il?"✅ Schedina inserita il "+formatoData(r.ultima_modifica_il):"❌ Non ancora inserita",r.ultima_modifica_il?"good":"muted"));
-        // I dettagli sono accessibili soltanto dopo la scadenza.
-        if(r.ultima_modifica_il && new Date(r.scadenza).getTime() <= Date.now()){
+        // L'amministratore puo consultare i pronostici anche prima della scadenza.
+        if(r.ultima_modifica_il){
           const apri=el("button","👁️ Visualizza pronostici","secondario");
           apri.type="button";
           const dettagli=el("div");
