@@ -400,6 +400,7 @@
           <a href="#fold-admin-utenti">👥 Utenti</a>
           <a href="#fold-admin-risultati">🥅 Risultati</a>
           <a href="#fold-admin-schedine">➕ Schedine</a>
+          <a href="#fold-admin-stato">📋 Stato schedine</a>
         </div>
         <details class="admin-fold" id="fold-admin-autorizzazioni"><summary>🔐 Autorizzazioni e squadre</summary><div class="admin-fold-body"><div id="admin-autorizzazioni" class="admin-section"><div class="panel"><h3>🔐 Autorizza email e squadra</h3>
           <label for="emailDaAutorizzare">Email completa del partecipante</label><input type="email" id="emailDaAutorizzare" placeholder="nome@esempio.it">
@@ -423,6 +424,8 @@
           <div id="campiPartite"></div>
           <button id="creaSchedina">Pubblica schedina</button>
         </div></div></div></div></details>
+
+        <details class="admin-fold" id="fold-admin-stato"><summary>📋 Stato schedine delle squadre</summary><div class="admin-fold-body"><div class="panel"><h3>📋 Conferme per squadra</h3><p class="info">Ultima conferma di ciascuna squadra. Solo lettura; aggiornamento automatico ogni 20 secondi mentre questa sezione è aperta.</p><button id="aggiornaStato" class="secondario" type="button">↻ Aggiorna stato</button><div id="listaStato">Apri questa sezione per vedere le conferme.</div></div></div></details>
 
         <details class="admin-fold" id="fold-admin-elimina"><summary>🗑️ Elimina una schedina</summary><div class="admin-fold-body">
           <div class="panel"><h3>🗑️ Elimina una giornata per tutti</h3>
@@ -661,12 +664,11 @@
         const badge=document.createElement("span"); badge.className="pill";
         head.append(info,badge); card.appendChild(head);
         if(ep || partite?.length!==4){const p=document.createElement("p");p.textContent=ep?.message||"Schedina incompleta.";card.appendChild(p);continue;}
-        const {data:salvati,error:es}=await client.from("predictions")
-          .select("match_id,pronostico").eq("user_id",user.id)
-          .in("match_id",partite.map(p=>p.id));
+        const {data:statoSquadra,error:es}=await client.rpc("leggi_schedina_squadra",{p_schedina_id:schedina.id});
         if (richiesta !== caricamento) return;
-        if(es){const p=document.createElement("p");p.textContent="Errore lettura pronostici: "+es.message;card.appendChild(p);continue;}
-        const originali=new Map((salvati||[]).map(p=>[p.match_id,p.pronostico]));
+        if(es){const p=document.createElement("p");p.textContent="Errore lettura schedina della squadra: "+es.message;card.appendChild(p);continue;}
+        const datiSquadra=statoSquadra?.pronostici||{};
+        const originali=new Map(partite.filter(p=>["1","X","2"].includes(datiSquadra[String(p.id)])).map(p=>[p.id,datiSquadra[String(p.id)]]));
         const bozze=new Map(originali);
         const limiti=new Map(partite.map(p=>[p.id,Math.min(new Date(schedina.scadenza).getTime(),new Date(p.match_date).getTime())]));
         const scaduta=()=>partite.some(p=>Date.now()>=limiti.get(p.id));
@@ -709,8 +711,8 @@
         salva.onclick=async()=>{
           if(scaduta()||partite.some(p=>!bozze.has(p.id))){aggiorna();return;}
           salva.dataset.busy="1";aggiorna();
-          const valori=partite.map(p=>bozze.get(p.id));
-          const {error}=await client.rpc("conferma_schedina_squadra",{
+          const valori=Object.fromEntries(partite.map(p=>[String(p.id),bozze.get(p.id)]));
+          const {data:conferma,error}=await client.rpc("conferma_schedina_squadra",{
             p_schedina_id:schedina.id,
             p_pronostici:valori
           });
@@ -721,6 +723,7 @@
             return;
           }
           for(const p of partite)originali.set(p.id,bozze.get(p.id));
+          if(adminAttivo)caricaStatoSchedine();
           aggiorna();
           messaggio("✓ Schedina completa confermata! Vale l'ultima conferma della squadra prima della scadenza.");
         };
@@ -970,6 +973,35 @@
         item.append(btn);target.append(item);
       }
     }
+    let caricamentoStato=false;
+    async function caricaStatoSchedine(){
+      if(!adminAttivo||caricamentoStato)return;
+      caricamentoStato=true;
+      const target=$("listaStato");
+      const {data,error}=await client.rpc("stato_schedine_admin");
+      caricamentoStato=false;
+      if(!adminAttivo)return;
+      target.replaceChildren();
+      if(error){target.textContent="Impossibile caricare lo stato: "+error.message;return;}
+      if(!data?.length){target.textContent="Nessuna squadra o schedina disponibile.";return;}
+      let gruppo=null,contenitore=null;
+      for(const r of data){
+        if(gruppo!==r.schedina_id){
+          gruppo=r.schedina_id;
+          const intestazione=el("h3",r.titolo_schedina+" · Scadenza: "+formatoData(r.scadenza));
+          target.append(intestazione);
+          contenitore=el("div",undefined,"panel");target.append(contenitore);
+        }
+        const item=el("div",undefined,"item");
+        item.append(el("strong",r.nome_squadra));
+        item.append(el("p",r.ultima_modifica_il?"✅ Schedina inserita il "+formatoData(r.ultima_modifica_il):"❌ Non ancora inserita",r.ultima_modifica_il?"good":"muted"));
+        contenitore.append(item);
+      }
+    }
+    $("aggiornaStato").onclick=caricaStatoSchedine;
+    $("fold-admin-stato").addEventListener("toggle",e=>{if(e.target.open&&adminAttivo)caricaStatoSchedine();});
+    setInterval(()=>{if(adminAttivo&&!$("view-admin").hidden&&$("fold-admin-stato").open)caricaStatoSchedine();},20000);
+
     $("aggiornaEliminazione").onclick=caricaEliminazione;
     $("fold-admin-elimina").addEventListener("toggle",e=>{if(e.target.open&&adminAttivo)caricaEliminazione();});
 
