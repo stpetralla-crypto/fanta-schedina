@@ -995,6 +995,35 @@
         const item=el("div",undefined,"item");
         item.append(el("strong",r.nome_squadra));
         item.append(el("p",r.ultima_modifica_il?"✅ Schedina inserita il "+formatoData(r.ultima_modifica_il):"❌ Non ancora inserita",r.ultima_modifica_il?"good":"muted"));
+        // I dettagli sono accessibili soltanto dopo la scadenza.
+        if(r.ultima_modifica_il && new Date(r.scadenza).getTime() <= Date.now()){
+          const apri=el("button","👁️ Visualizza pronostici","secondario");
+          apri.type="button";
+          const dettagli=el("div");
+          dettagli.hidden=true;
+          apri.onclick=async()=>{
+            if(!adminAttivo)return;
+            if(!dettagli.hidden){dettagli.hidden=true;apri.textContent="👁️ Visualizza pronostici";return;}
+            dettagli.hidden=false;
+            apri.textContent="Nascondi pronostici";
+            dettagli.textContent="Caricamento pronostici...";
+            const squadraId=r.squadra_id ?? squadreDisponibili.find(s=>s.nome===r.nome_squadra)?.id;
+            if(!squadraId){dettagli.textContent="Squadra non trovata: aggiorna la pagina.";return;}
+            const {data:pronostici,error:errore}=await client.rpc("visualizza_pronostici_admin",{
+              p_schedina_id:r.schedina_id,
+              p_squadra_id:squadraId
+            });
+            dettagli.replaceChildren();
+            if(errore){dettagli.textContent="Impossibile visualizzare: "+errore.message;return;}
+            if(!Array.isArray(pronostici)||!pronostici.length){dettagli.textContent="Nessun pronostico disponibile.";return;}
+            for(const p of pronostici){
+              const riga=el("div",undefined,"item");
+              riga.append(el("strong",p.posizione+". "+p.partita),el("p","Pronostico: "+(p.pronostico||"—")));
+              dettagli.append(riga);
+            }
+          };
+          item.append(apri,dettagli);
+        }
         contenitore.append(item);
       }
     }
