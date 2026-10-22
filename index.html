@@ -325,7 +325,8 @@
       .login-card { padding:15px 12px; }
     }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
-  </style>
+    .squadra-personale{border:2px solid #25a66a!important;background:rgba(37,166,106,.10)!important;border-radius:12px;padding:14px}
+</style>
 </head>
 
 <body>
@@ -384,7 +385,7 @@
         </div>
       </section>
       <section id="view-storico" class="view" hidden>
-        <div class="section-intro"><span class="eyebrow">LE TUE GIORNATE</span><h2>📚 Il mio storico</h2><p class="info">Solo le schedine scadute in cui hai confermato tutti e 4 i pronostici. Le giornate con 5 o 10 punti sono evidenziate.</p></div>
+        <div class="section-intro"><span class="eyebrow">LE TUE GIORNATE</span><h2>📚 Storico delle squadre</h2><p class="info">Pronostici delle squadre dopo la scadenza, con risultati, risposte esatte e punti.</p></div>
         <button id="aggiornaStorico" class="secondario">↻ Aggiorna storico</button>
         <div id="listaStorico" aria-live="polite">Caricamento...</div>
       </section>
@@ -732,56 +733,43 @@
       }
     }
 
-    // STORICO PERSONALE: soltanto schedine scadute con quattro pronostici salvati.
+    // STORICO DELLE SQUADRE: dati disponibili soltanto dopo la scadenza.
     let richiestaStorico=0;
     async function caricaStorico(user){
       const richiesta=++richiestaStorico;
-      const target=$("listaStorico"); target.textContent="Caricamento del tuo storico...";
-      const {data:giornate,error:err}=await client.from("schedine").select("id,titolo,scadenza").lte("scadenza",new Date().toISOString()).order("scadenza",{ascending:false});
+      const target=$("listaStorico");target.textContent="Caricamento storico...";
+      const {data,error}=await client.rpc("dettaglio_pronostici_squadre");
       if(richiesta!==richiestaStorico)return;
-      if(err){target.textContent="Errore: "+err.message;return;}
-      target.replaceChildren();let mostrate=0;
-      for(const g of giornate||[]){
-        const {data:partite,error:ep}=await client.from("matches").select("id,posizione,home_team,away_team,home_score,away_score").eq("schedina_id",g.id).order("posizione");
-        if(richiesta!==richiestaStorico)return;
-        if(ep||partite?.length!==4)continue;
-        const {data:pronostici,error:epr}=await client.from("predictions").select("match_id,pronostico").eq("user_id",user.id).in("match_id",partite.map(x=>x.id));
-        if(richiesta!==richiestaStorico)return;
-        if(epr||pronostici?.length!==4)continue;
-        mostrate++;
-        const pron=new Map(pronostici.map(x=>[x.match_id,x.pronostico]));
-        const conclusa=partite.every(x=>x.home_score!==null&&x.away_score!==null);
-        const esito=x=>x.home_score>x.away_score?'1':x.home_score<x.away_score?'2':'X';
-        const corrette=conclusa?partite.filter(x=>pron.get(x.id)===esito(x)).length:0;
-        const punti=conclusa?(corrette===4?10:corrette===3?5:0):null;
-        const card=el('article',undefined,'history-card'+(punti>0?' winner':''));
-        const top=el('div',undefined,'history-head');
-        const left=el('div');left.append(el('h3',g.titolo),el('small','Scaduta il '+formatoData(g.scadenza)));
-        const tag=el('span',punti===null?'⏳ In attesa':punti>0?'🏆 +'+punti+' punti':'0 punti','history-points'+(punti>0?' earned':''));
-        top.append(left,tag);card.append(top);
-        for(const x of partite){
-          const r=el('div',undefined,'history-match');
-          r.append(el('span',x.home_team+' – '+x.away_team),el('strong','Il tuo: '+pron.get(x.id)+(conclusa?' · '+x.home_score+'-'+x.away_score+(pron.get(x.id)===esito(x)?' ✓':' ✕'):'')));
-          card.append(r);
-        }
-        if(conclusa)card.append(el('p',corrette+' pronostici esatti su 4. '+(punti>0?'Ottimo risultato!':'Questa giornata non assegna punti.'),'history-foot'));
-        else card.append(el('p','Risultati non ancora completi: punti in attesa.','history-foot'));
-        const apri=document.createElement('button');apri.className='secondario';apri.textContent='👀 Vedi pronostici degli altri';
-        const peers=el('div');peers.hidden=true;
-        apri.onclick=async()=>{
-          if(!peers.hidden){peers.hidden=true;apri.textContent='👀 Vedi pronostici degli altri';return;}
-          peers.hidden=false;apri.textContent='Nascondi pronostici';peers.textContent='Caricamento...';
-          const {data,error}=await client.rpc('pronostici_dopo_scadenza',{p_schedina_id:g.id});
-          peers.replaceChildren();
-          if(error){peers.textContent='Non disponibili: '+error.message;return;}
-          if(!data?.length){peers.textContent='Nessun altro pronostico completo disponibile.';return;}
-          const table=el('div',undefined,'peer-table');
-          for(const u of data){const row=el('div',undefined,'peer-row');row.append(el('strong',u.nome_squadra||u.username||'Giocatore'),el('span',[u.p1,u.p2,u.p3,u.p4].join(' · ')));table.append(row);}
-          peers.append(table);
-        };
-        card.append(apri,peers);target.append(card);
+      target.replaceChildren();
+      if(error){target.textContent="Storico non disponibile: "+error.message;return;}
+      if(!data?.length){target.textContent="Nessuna schedina scaduta e confermata da una squadra.";return;}
+      const giornate=new Map();
+      for(const r of data){
+        if(!giornate.has(r.schedina_id))giornate.set(r.schedina_id,{titolo:r.titolo_schedina,squadre:new Map()});
+        const g=giornate.get(r.schedina_id);
+        if(!g.squadre.has(r.squadra_id))g.squadre.set(r.squadra_id,{nome:r.nome_squadra,mia:r.mia_squadra,righe:[]});
+        g.squadre.get(r.squadra_id).righe.push(r);
       }
-      if(!mostrate)target.innerHTML='<div class="empty-state"><span>📚</span><h3>Il tuo storico è ancora vuoto</h3><p>Qui appariranno solo le schedine che hai giocato e che sono scadute.</p></div>';
+      for(const g of giornate.values()){
+        const sezione=el('article',undefined,'history-card');
+        sezione.append(el('h3','📅 '+g.titolo));
+        const squadre=[...g.squadre.values()].sort((a,b)=>Number(b.mia)-Number(a.mia)||a.nome.localeCompare(b.nome));
+        for(const squadra of squadre){
+          const righe=squadra.righe.sort((a,b)=>a.posizione-b.posizione);
+          const completata=righe.length===4&&righe.every(r=>r.risultato!==null);
+          const corretti=completata?righe.filter(r=>r.esatto===true).length:null;
+          const punti=completata?(corretti===4?10:corretti===3?5:0):null;
+          const card=el('div',undefined,'item'+(squadra.mia?' squadra-personale':''));
+          card.append(el('strong',(squadra.mia?'🟢 LA TUA SQUADRA · ':'')+squadra.nome));
+          card.append(el('p',completata?('🎯 '+corretti+'/4 esatti · 🏆 '+punti+' punti'):'⏳ Risultati in attesa'));
+          for(const r of righe){
+            const stato=r.esatto===null?'⏳':r.esatto?'✅':'❌';
+            card.append(el('div',stato+' '+r.partita+' · '+(r.pronostico||'—')+' · '+(r.risultato??'Risultato in attesa'),'history-match'));
+          }
+          sezione.append(card);
+        }
+        target.append(sezione);
+      }
     }
     $("aggiornaStorico").onclick=()=>utenteAttivo&&caricaStorico(utenteAttivo);
 
@@ -840,13 +828,45 @@
     };
     async function caricaClassifica(){
       const target=$("listaClassifica");target.textContent="Caricamento...";
-      const {data,error}=await client.rpc("classifica_pubblica");
+      const [classifica,dettagli]=await Promise.all([
+        client.rpc("classifica_pubblica"),
+        client.rpc("dettaglio_pronostici_squadre")
+      ]);
       target.replaceChildren();
-      if(error){target.textContent="Classifica non disponibile: completare la configurazione SQL. "+error.message;return;}
-      if(!data?.length){target.textContent="Nessun punteggio disponibile.";return;}
-      for(const [i,p] of data.entries()){
-        const card=el("div",undefined,"item");
-        card.append(el("strong",(i+1)+"° · "+(p.nome_squadra||"Squadra da assegnare")),el("p",(p.punti_totali??0)+" punti · "+(p.schedine_giocate??0)+" schedine"));
+      if(classifica.error){target.textContent="Classifica non disponibile: "+classifica.error.message;return;}
+      if(!classifica.data?.length){target.textContent="Nessun punteggio disponibile.";return;}
+      if(dettagli.error){target.append(el('p','Dettagli pronostici non disponibili: '+dettagli.error.message));}
+      const perSquadra=new Map();
+      for(const r of dettagli.data||[]){
+        if(!perSquadra.has(r.nome_squadra))perSquadra.set(r.nome_squadra,{mia:false,giornate:new Map()});
+        const info=perSquadra.get(r.nome_squadra);
+        info.mia=info.mia||r.mia_squadra===true;
+        if(!info.giornate.has(r.schedina_id))info.giornate.set(r.schedina_id,[]);
+        info.giornate.get(r.schedina_id).push(r);
+      }
+      for(const [i,p] of classifica.data.entries()){
+        const info=perSquadra.get(p.nome_squadra);
+        const card=el('div',undefined,'item'+(info?.mia?' squadra-personale':''));
+        card.append(el('strong',(i+1)+'° · '+(info?.mia?'🟢 LA TUA SQUADRA · ':'')+(p.nome_squadra||'Squadra da assegnare')));
+        card.append(el('p',(p.punti_totali??0)+' punti · '+(p.schedine_giocate??0)+' schedine'));
+        if(info){
+          for(const righe of info.giornate.values()){
+            const finite=righe.length===4&&righe.every(r=>r.risultato!==null);
+            const n=righe.filter(r=>r.esatto===true).length;
+            const r=righe[0];
+            card.append(el('p','🎯 '+r.titolo_schedina+': '+(finite?n+'/4 pronostici esatti':'risultati in attesa'),'muted'));
+          }
+          const btn=el('button','👀 Vedi le 4 partite','secondario');
+          const corpo=el('div');corpo.hidden=true;
+          btn.onclick=()=>{corpo.hidden=!corpo.hidden;btn.textContent=corpo.hidden?'👀 Vedi le 4 partite':'Nascondi dettagli';};
+          for(const righe of info.giornate.values()){
+            corpo.append(el('strong',righe[0].titolo_schedina));
+            for(const r of [...righe].sort((a,b)=>a.posizione-b.posizione)){
+              corpo.append(el('div',(r.esatto===null?'⏳':r.esatto?'✅':'❌')+' '+r.partita+' · '+(r.pronostico||'—')+' · '+(r.risultato??'In attesa'),'history-match'));
+            }
+          }
+          card.append(btn,corpo);
+        }
         target.append(card);
       }
     }
