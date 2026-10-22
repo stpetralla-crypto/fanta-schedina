@@ -423,6 +423,13 @@
           <div id="campiPartite"></div>
           <button id="creaSchedina">Pubblica schedina</button>
         </div></div></div></div></details>
+
+        <details class="admin-fold" id="fold-admin-elimina"><summary>🗑️ Elimina una schedina</summary><div class="admin-fold-body">
+          <div class="panel"><h3>🗑️ Elimina una giornata per tutti</h3>
+          <p class="info">L'eliminazione rimuove definitivamente la schedina, tutte le partite e tutti i pronostici collegati. La classifica verrà aggiornata automaticamente.</p>
+          <button id="aggiornaEliminazione" class="secondario" type="button">↻ Aggiorna elenco</button>
+          <div id="listaEliminazione">Apri questa sezione per caricare le schedine.</div></div>
+        </div></details>
       </section>
       <section id="view-profilo" class="view" hidden>
         <h2>👤 Il tuo profilo</h2>
@@ -937,6 +944,37 @@
       }
     }
     $("aggiornaRisultati").onclick=caricaRisultati;
+
+    // ELIMINAZIONE COMPLETA: solo tramite funzione protetta su Supabase.
+    async function caricaEliminazione(){
+      if(!adminAttivo)return;
+      const target=$("listaEliminazione");target.textContent="Caricamento...";
+      const {data,error}=await client.from("schedine").select("id,titolo,scadenza").order("id",{ascending:false});
+      target.replaceChildren();
+      if(error){target.textContent="Errore: "+error.message;return;}
+      if(!data?.length){target.textContent="Non ci sono schedine da eliminare.";return;}
+      for(const s of data){
+        const item=el("div",undefined,"item");
+        item.append(el("strong",s.titolo),el("p","Scadenza: "+formatoData(s.scadenza),"muted"));
+        const btn=el("button","🗑️ Elimina schedina");
+        btn.type="button";btn.style.background="#b91c1c";
+        btn.onclick=async()=>{
+          if(!adminAttivo)return;
+          if(!confirm("PRIMA CONFERMA\n\nVuoi eliminare la schedina «"+s.titolo+"»?"))return;
+          if(!confirm("SECONDA CONFERMA - ELIMINAZIONE DEFINITIVA\n\nEliminerai «"+s.titolo+"» per TUTTI: partite, pronostici e relativi punti. Non si può annullare.\n\nConfermi definitivamente?"))return;
+          btn.disabled=true;
+          const {error:err}=await client.rpc("elimina_schedina_admin",{p_schedina_id:s.id});
+          if(err){btn.disabled=false;messaggio("Eliminazione non riuscita: "+err.message,true);return;}
+          messaggio("Schedina «"+s.titolo+"» eliminata per tutti.");
+          await Promise.all([caricaEliminazione(),caricaRisultati()]);
+          if(utenteAttivo){caricaSchedine(utenteAttivo);}
+        };
+        item.append(btn);target.append(item);
+      }
+    }
+    $("aggiornaEliminazione").onclick=caricaEliminazione;
+    $("fold-admin-elimina").addEventListener("toggle",e=>{if(e.target.open&&adminAttivo)caricaEliminazione();});
+
 
     document.querySelectorAll(".admin-jump a").forEach(link=>{
       link.addEventListener("click",()=>{
