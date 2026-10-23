@@ -999,11 +999,58 @@
     }
     function notiziaGiornata(g){
       const stats=riassuntoGiornata(g);
-      if(!stats.finite.length)return {titolo:'La giornata aspetta il verdetto',testo:'I pronostici sono consultabili, ma i risultati non sono ancora completi. La cronaca arriverà appena saranno inseriti tutti i risultati.'};
-      const perfette=stats.finite.filter(s=>s.corretti===4);
-      if(perfette.length)return {titolo:'Schedina perfetta! '+perfette.map(s=>s.nome).join(' e ')+' da applausi',testo:'Quattro pronostici su quattro: 10 punti conquistati. '+(stats.mvp.length>1?'MVP a pari merito per '+stats.mvp.map(s=>s.nome).join(', ')+'.':'Il premio MVP va a '+stats.mvp[0].nome+'.')};
-      if(stats.mvp.length){const nomi=stats.mvp.map(s=>s.nome).join(' e ');return {titolo:'Il campo premia '+nomi,testo:stats.maxCorretti+' pronostici esatti su 4 per '+(stats.mvp.length>1?'le migliori squadre':'la miglior squadra')+' della giornata. '+(stats.maxCorretti===3?'Cinque punti preziosi per la corsa al titolo.':'La lotta resta aperta: ogni giornata può cambiare la classifica.')};}
-      return {titolo:'Giornata imprevedibile: nessun pronostico esatto',testo:'Questa volta il pallone ha sorpreso tutti. Si riparte dalla prossima schedina!'};
+      if(!stats.finite.length)return {titolo:'La redazione aspetta il fischio finale',testo:'Pronostici sotto la lente, ma niente sentenze prima di tutti i risultati. I giornalisti stanno ancora litigando con la macchinetta del caffè.'};
+      // Notizie scherzose basate esclusivamente sui pronostici e risultati reali.
+      // Nessuna modifica a punteggi, MVP, classifiche o dati salvati.
+      const finite=stats.finite;
+      const perfette=finite.filter(s=>s.corretti===4);
+      const quasi=finite.filter(s=>s.corretti===3);
+      const zero=finite.filter(s=>s.corretti===0);
+      const migliori=stats.mvp.map(s=>s.nome).join(' e ');
+      const nomi=arr=>arr.map(s=>s.nome).join(' e ');
+      const indice=String(g.titolo||'').split('').reduce((n,c)=>n+c.charCodeAt(0),0)%3;
+      if(perfette.length){
+        const titoli=['🚀 '+nomi(perfette)+': chiamate la NASA!', '🎯 '+nomi(perfette)+': quattro colpi, zero pietà!', '👑 '+nomi(perfette)+': il pallone chiede un autografo!'];
+        return {titolo:titoli[indice],testo:'Schedina perfetta: 4 pronostici esatti su 4 e 10 punti. In redazione sospettano una sfera di cristallo, ma per ora non ci sono prove. '+(perfette.length>1?'MVP a pari merito!':'MVP della giornata!')};
+      }
+      if(stats.maxCorretti===3){
+        const titoli=['🥈 '+migliori+': il quarto pronostico è scappato!', '🔥 '+migliori+': tre centri e un rimpianto!', '🕵️ '+migliori+': cercasi quarto risultato disperatamente!'];
+        return {titolo:titoli[indice],testo:'Tre pronostici su quattro e 5 punti in classifica. Ottima giornata, ma il quarto risultato è ancora ricercato dalla polizia sportiva.'+(zero.length?' Intanto '+nomi(zero)+' '+(zero.length===1?'ha':'hanno')+' chiuso a zero: il pallone non risponde alle chiamate.':'')};
+      }
+      if(stats.maxCorretti>0){
+        const titoli=['⚽ '+migliori+': almeno il pallone era quello giusto!', '🎭 Giornata folle: '+migliori+' salva l’onore!', '📰 '+migliori+' guida la classifica dei sopravvissuti!'];
+        return {titolo:titoli[indice],testo:'Il miglior risultato della giornata è '+stats.maxCorretti+' su 4: nessuna squadra conquista punti con questo punteggio. '+(zero.length?'Per '+nomi(zero)+' zero pronostici esatti: la panchina propone di consultare un polpo.':'La redazione consiglia una bella ripassata all’1X2.')};
+      }
+      return {titolo:['🥶 Zero su quattro per tutti: il pallone ride!', '🚨 Disastro collettivo: la schedina chiede ferie!', '🐙 Cercasi polpo indovino, esperienza gradita!'][indice],testo:'Nessuna delle squadre con risultati completi ha indovinato una partita. Zero punti per tutti: la redazione ha chiesto il silenzio stampa.'};
+    }
+    // Rubriche aggiuntive: soltanto dati reali e giornate concluse.
+    function altreNotizieGiornata(g){
+      const st=riassuntoGiornata(g),finite=st.finite;
+      if(!finite.length)return [];
+      const seed=[...String(g.titolo)].reduce((n,c)=>n+c.charCodeAt(0),0);
+      const scegli=(a,salto=0)=>a[(seed+salto)%a.length];
+      const nome=s=>s.nome;
+      const notizie=[];
+      const gruppi=[
+        {n:4,t:['🏆 Il VAR conferma: perfezione assoluta!','🚀 Quattro timbri sul passaporto per la gloria','🎩 Magia nera? No, quattro pronostici giusti','📞 Pronto, Guinness? Qui abbiamo un fenomeno!','🎯 Precisione chirurgica: quattro su quattro','👑 Il re della schedina ha parlato','🧠 Il cervellone della giornata non sbaglia un colpo','🛸 Avvistato un alieno davanti alla schedina'],b:['fa quattro su quattro: 10 punti e applausi dalla tribuna.','centra tutti i risultati: la redazione chiede il numero del veggente.','indovina ogni partita: gli avversari chiedono la moviola dei pronostici.']},
+        {n:3,t:['🥈 Tre centri, un pallone in curva','🔍 Identikit del quarto pronostico scomparso','😬 Il poker sfuma al novantesimo','🔥 A un passo dalla leggenda','🎯 Tre frecce a segno, la quarta nel parcheggio','🕵️ Il quarto risultato resta un mistero','📣 La curva applaude, ma vuole il quarto','💔 Tre sì e un no: storia di una quasi impresa'],b:['chiude con tre risultati esatti e 5 punti. Il quarto? Ancora irreperibile.','sfiora la perfezione: tre pronostici giusti su quattro.','porta a casa 5 punti e un piccolo rimpianto.']},
+        {n:2,t:['⚽ Due intuizioni, zero punti: regolamento spietato','🧩 Metà schedina perfetta, metà da rivedere','🤹 Due colpi riusciti e due palloni persi','🛠️ Lavori in corso nello spogliatoio','📚 Ripasso dell’1X2 fissato per lunedì','🎭 La schedina divide i tifosi','🔧 Due pronostici giusti: serve l’ultimo ritocco','🥅 Due gol della mente, ma non bastano'],b:['azzecca due partite su quattro, ma il regolamento assegna zero punti.','si ferma a due pronostici esatti: il tabellone non si muove.','indovina metà schedina e promette riscatto.']},
+        {n:1,t:['🧭 Un solo centro, ma almeno la strada è quella','🥶 Un lampo nel buio della schedina','📉 Il mercato delle previsioni chiude in rosso','🪄 La magia dura una partita soltanto','🧤 Il portiere salva un pronostico su quattro','🚧 Cantiere aperto: tre risultati da sistemare','🫣 Uno giusto, gli altri in vacanza','📞 Cercasi consulente per i prossimi pronostici'],b:['indovina una sola partita: zero punti, ma la speranza resta.','chiude con un risultato esatto su quattro.','trova un pronostico giusto: gli altri tre prendono un’altra strada.']},
+        {n:0,t:['🐙 Il polpo avrebbe fatto meglio?','🚨 Quattro pronostici, quattro porte chiuse','🫠 La schedina presenta domanda di ferie','📉 Borsa dei pronostici: seduta da dimenticare','🧯 Allarme nello spogliatoio dei pronostici','🕶️ Zero centri, massima riservatezza','🚀 La fortuna è partita senza avvisare','🥶 Giornata polare: zero su quattro'],b:['chiude con zero risultati esatti: la redazione suggerisce un corso accelerato di 1X2.','non ne indovina una: il pallone chiede spiegazioni.','registra zero su quattro: i tifosi chiedono una conferenza stampa.']}
+      ];
+      for(const gruppo of gruppi){
+        const squadra=finite.filter(s=>s.corretti===gruppo.n).sort((a,b)=>a.nome.localeCompare(b.nome))[0];
+        if(!squadra)continue;
+        notizie.push({titolo:scegli(gruppo.t,gruppo.n),testo:nome(squadra)+' '+scegli(gruppo.b,gruppo.n+3)});
+      }
+      if(finite.length>1){
+        const migliori=finite.filter(s=>s.corretti===st.maxCorretti);
+        if(migliori.length>1)notizie.push({titolo:scegli(['🤝 Pareggio al vertice: il trono è condiviso','👑 Due o più re, una sola corona','⚖️ Il VAR decreta: ex aequo!'],9),testo:migliori.map(nome).join(', ')+' chiudono con '+st.maxCorretti+' pronostici esatti ciascuno.'});
+        const min=Math.min(...finite.map(s=>s.corretti));
+        const distanza=st.maxCorretti-min;
+        if(distanza>=2)notizie.push({titolo:scegli(['🎢 Montagne russe: che differenza tra le schedine!','📊 La giornata divide la tribuna','🌪️ Pronostici agli estremi: nessuna via di mezzo'],11),testo:'Tra il miglior risultato ('+st.maxCorretti+'/4) e il peggiore ('+min+'/4) ci sono '+distanza+' pronostici di differenza.'});
+      }
+      return notizie.slice(0,5);
     }
     // ARCHIVIO: una sezione per ogni schedina, richiudibile e scalabile.
     let richiestaStorico=0;
@@ -1032,6 +1079,11 @@
       giornaleCard.append(el('h3',articolo.titolo,'gazetta-title'));
       giornaleCard.append(el('p',articolo.testo,'gazetta-body'));
       giornale.append(giornaleCard);
+      for(const notizia of altreNotizieGiornata(ultima)){
+        const extra=el('article',undefined,'gazetta-mini');
+        extra.append(el('strong','📰 '+notizia.titolo),el('p',notizia.testo));
+        giornale.append(extra);
+      }
       const bar=el('div',undefined,'archive-toolbar');
       bar.append(el('strong','🏟️ Archivio delle giornate'));
       bar.append(el('span',giornate.size+' '+(giornate.size===1?'schedina archiviata':'schedine archiviate'),'archive-count'));
