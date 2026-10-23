@@ -438,6 +438,18 @@
       .archive-day-title{font-size:13px}.archive-subtitle{font-size:10px}
     }
 
+
+    /* Edizione campionato: migliorie per Gioca, Storico e smartphone */
+    .countdown-box {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;margin:12px 0;border:1px solid #bbf7d0;border-radius:13px;background:linear-gradient(110deg,#ecfdf5,#f0fdf4);color:#14532d}
+    .countdown-box strong {font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .countdown-box small {font-size:12px;color:#166534}
+    .confirm-receipt {margin-top:13px;padding:15px;border-radius:13px;border:2px solid #16a34a;background:#f0fdf4;color:#14532d}
+    .confirm-receipt strong {display:block;font-size:17px;margin-bottom:7px}
+    .confirm-receipt .receipt-picks {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:10px 0}
+    .confirm-receipt .receipt-picks span {text-align:center;background:white;border:1px solid #bbf7d0;border-radius:8px;padding:8px 3px;font-weight:800}
+    .champion-tag {display:inline-block;font-size:11px;font-weight:800;color:#854d0e;background:#fef3c7;border:1px solid #fde68a;border-radius:20px;padding:3px 8px;margin-top:4px}
+    .archive-day-title,.archive-team-name {overflow-wrap:anywhere}
+    @media(max-width:550px){.countdown-box{padding:11px;align-items:flex-start;flex-direction:column;gap:4px}.countdown-box strong{font-size:17px}.confirm-receipt{padding:12px}.archive-day summary,.archive-team summary{font-size:13px}.archive-match{font-size:12px}.nav button{font-size:12px}}
   </style>
 </head>
 
@@ -778,6 +790,23 @@
         info.append(h,date);
         const badge=document.createElement("span"); badge.className="pill";
         head.append(info,badge); card.appendChild(head);
+        const countdown=el('div',undefined,'countdown-box');
+        const countdownLabel=el('small','⏱️ Tempo rimasto per confermare');
+        const countdownValue=el('strong','Calcolo...');
+        countdown.append(countdownLabel,countdownValue);card.append(countdown);
+        const countdownDeadline=new Date(schedina.scadenza).getTime();
+        function renderCountdown(){
+          const ms=countdownDeadline-Date.now();
+          if(ms<=0){countdownValue.textContent='🔒 Schedina chiusa';return;}
+          const d=Math.floor(ms/86400000),h=Math.floor(ms/3600000)%24,m=Math.floor(ms/60000)%60,sec=Math.floor(ms/1000)%60;
+          countdownValue.textContent=(d?d+'g ':'')+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+        }
+        renderCountdown();
+        const countdownTimer=setInterval(()=>{
+          if(!card.isConnected){clearInterval(countdownTimer);return;}
+          renderCountdown();
+          if(Date.now()>=countdownDeadline){clearInterval(countdownTimer);aggiorna();}
+        },1000);
         if(ep || partite?.length!==4){const p=document.createElement("p");p.textContent=ep?.message||"Schedina incompleta.";card.appendChild(p);continue;}
         const {data:statoSquadra,error:es}=await client.rpc("leggi_schedina_squadra",{p_schedina_id:schedina.id});
         if (richiesta !== caricamento) return;
@@ -792,6 +821,16 @@
         const salva=document.createElement("button");salva.type="button";salva.textContent="✓ Conferma pronostici";
         const status=document.createElement("p");status.setAttribute("role","status");
         bar.append(salva,status);
+        const ricevuta=el('div',undefined,'confirm-receipt');ricevuta.hidden=true;
+        function mostraRicevuta(){
+          ricevuta.replaceChildren();
+          ricevuta.append(el('strong','✅ Schedina della squadra confermata!'));
+          ricevuta.append(el('div','Conferma effettuata il '+new Date().toLocaleString('it-IT')+'. Vale l’ultima conferma della squadra entro la scadenza.'));
+          const picks=el('div',undefined,'receipt-picks');
+          partite.forEach((p,i)=>picks.append(el('span',(i+1)+' · '+(originali.get(p.id)||'—'))));
+          ricevuta.append(picks);
+          ricevuta.hidden=false;
+        }
         function aggiorna(){
           const chiusa=scaduta();
           badge.textContent=chiusa?"🔒 Chiusa":"🟢 Aperta";
@@ -838,11 +877,12 @@
             return;
           }
           for(const p of partite)originali.set(p.id,bozze.get(p.id));
+          mostraRicevuta();
           if(adminAttivo)caricaStatoSchedine();
           aggiorna();
           messaggio("✓ Schedina completa confermata! Vale l'ultima conferma della squadra prima della scadenza.");
         };
-        card.appendChild(bar);
+        card.append(bar,ricevuta);
         aggiorna();
       }
     }
@@ -877,7 +917,14 @@
         head.append(label);day.append(head);
         const content=el('div',undefined,'archive-content');
         const squadre=[...g.squadre.values()].sort((a,b)=>Number(b.mia)-Number(a.mia)||a.nome.localeCompare(b.nome));
-        for(const squadra of squadre){
+        const punteggi=squadre.map(s=>{
+          const r=s.righe;
+          if(r.length!==4||r.some(x=>x.risultato===null))return null;
+          const n=r.filter(x=>x.esatto===true).length;
+          return n===4?10:n===3?5:0;
+        });
+        const massimo=punteggi.filter(x=>x!==null).reduce((a,b)=>Math.max(a,b),-1);
+        for(const [squadraIndex,squadra] of squadre.entries()){
           const righe=squadra.righe.sort((a,b)=>a.posizione-b.posizione);
           const completata=righe.length===4&&righe.every(r=>r.risultato!==null);
           const corretti=completata?righe.filter(r=>r.esatto===true).length:null;
@@ -886,6 +933,7 @@
           const summary=el('summary');const name=el('div');
           name.append(el('div',(squadra.mia?'🟢 ':'')+squadra.nome,'archive-team-name'));
           if(squadra.mia)name.append(el('span','LA TUA SQUADRA','ranking-me'));
+          if(massimo>0&&punteggi[squadraIndex]===massimo)name.append(el('span','🏆 Miglior squadra della giornata','champion-tag'));
           summary.append(name,el('span',completata?'🎯 '+corretti+'/4 · '+punti+' pt':'⏳ Risultati in attesa','archive-team-score'));
           team.append(summary);
           const matches=el('div',undefined,'archive-matches');
@@ -1371,6 +1419,10 @@
           );
         }
 
+        if (partite.some(p =>
+          (p.home_team.toLowerCase()===casa.toLowerCase() && p.away_team.toLowerCase()===ospite.toLowerCase()) ||
+          (p.home_team.toLowerCase()===ospite.toLowerCase() && p.away_team.toLowerCase()===casa.toLowerCase())
+        )) return messaggio('La partita '+i+' è già presente nella schedina. Inserisci quattro incontri diversi.',true);
         partite.push({
           home_team: casa,
           away_team: ospite,
