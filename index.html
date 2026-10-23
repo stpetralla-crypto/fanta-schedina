@@ -471,6 +471,10 @@
     .gazetta-mini strong{font-family:Georgia,serif;font-size:14px;color:#24543a}.gazetta-mini p{font-size:12px;color:#55675a;margin:5px 0 0;line-height:1.5}
     @media(max-width:550px){.leader-party{padding:13px}.leader-party h3{font-size:17px}.gazetta-title{font-size:18px}.gazetta-masthead{font-size:19px}}
     @media(prefers-reduced-motion:reduce){.leader-crown{animation:none}}
+    .admin-mode-banner{padding:14px;border:2px solid #eab308;border-radius:13px;background:#fffbeb;margin:12px 0;color:#713f12}
+    .admin-mode-banner strong{display:block;margin-bottom:5px}
+    .admin-mode-banner button{background:#475569}
+    .closed-notice{background:#eef2f7;border:1px solid #cbd5e1;border-radius:11px;padding:12px;margin:12px 0;color:#334155;font-size:13px}
   </style>
 </head>
 
@@ -527,6 +531,7 @@
         <div id="areaPronostici">
           <h2>⚽ Schedina da giocare</h2>
           <p class="info">Scegli 1 (casa), X (pareggio) o 2 (ospite). Premi <strong>Conferma pronostici</strong> per salvarli. Puoi modificarli fino alla scadenza indicata.</p>
+          <div id="modalitaAdminGioca" class="admin-mode-banner" hidden><strong>🛡️ Modalità amministratore</strong><div id="squadraAdminGioca"></div><button id="tornaAllaMiaSquadra" type="button">↩ Torna alla mia squadra</button></div>
           <div id="elencoSchedine">Caricamento...</div>
           <button id="aggiornaSchedine" class="secondario">↻ Aggiorna schedine</button>
         </div>
@@ -560,6 +565,7 @@
         </div></details>
         <details class="admin-fold" id="fold-admin-utenti"><summary>👥 Utenti registrati</summary><div class="admin-fold-body"><div id="admin-utenti" class="admin-section"><div class="panel"><h3>👥 Utenti registrati</h3><p class="info">Solo amministratore: email, conferma e squadra associata.</p><button id="aggiornaUtenti" class="secondario">↻ Aggiorna utenti</button><div id="listaUtenti"></div></div></div>
         </div></details>
+        <details class="admin-fold" id="fold-admin-gioca"><summary>🛡️ Gioca per una squadra</summary><div class="admin-fold-body"><div class="panel"><h3>Gestisci i pronostici di una squadra</h3><p class="info">Solo amministratore. Seleziona una squadra e apri Gioca. Potrai confermare i pronostici prima della scadenza, senza accedere al suo account. Le modifiche vengono registrate nel database.</p><label for="squadraDaGestire">Squadra</label><select id="squadraDaGestire"></select><button id="apriSquadraAdmin" type="button">⚽ Apri Gioca per questa squadra</button></div></div></details>
         <details class="admin-fold" id="fold-admin-risultati"><summary>🥅 Risultati partite</summary><div class="admin-fold-body"><div id="admin-risultati" class="admin-section"><div class="panel"><h3>🥅 Inserisci risultati</h3><p class="info">Inserisci i gol delle partite concluse. Lascia i campi vuoti se il risultato non è disponibile.</p><button id="aggiornaRisultati" class="secondario">↻ Aggiorna partite</button><div id="listaRisultati"></div></div></div>
         </div></details>
         <details class="admin-fold" id="fold-admin-schedine"><summary>➕ Crea una schedina</summary><div class="admin-fold-body"><div id="admin-schedine" class="admin-section"><div class="admin-section-title"><span class="eyebrow">NUOVA GIORNATA</span><h3>➕ Crea una schedina</h3><p class="info">Compila le quattro partite e pubblica la schedina.</p></div><div id="pannelloAdmin" hidden><div class="admin-content">
@@ -647,7 +653,8 @@
     let utenteAttivo = null;
     let adminAttivo = false;
     let squadreDisponibili = [];
-    let autorizzazioneAttiva = null;
+         let autorizzazioneAttiva = null;
+     let squadraGestitaAdmin = null;
 
     function messaggio(testo, errore = false) {
       $("messaggio").textContent = testo;
@@ -734,7 +741,8 @@
       }
 
       const amministratore = !!data;
-      adminAttivo = amministratore;
+             adminAttivo = amministratore;
+       if(!amministratore){squadraGestitaAdmin=null;$("modalitaAdminGioca").hidden=true;}
 
       $("pannelloAdmin").hidden = !amministratore;
       $("tabAdmin").hidden = !amministratore;
@@ -753,7 +761,7 @@
       utenteAttivo = sessione?.user || null;
       adminAttivo = false;
       $("tabAdmin").hidden = true;
-      if (!utenteAttivo) { autorizzazioneAttiva = null; $("squadraProfilo").textContent = "—"; }
+             if (!utenteAttivo) { squadraGestitaAdmin=null;$("modalitaAdminGioca").hidden=true; autorizzazioneAttiva = null; $("squadraProfilo").textContent = "—"; }
 
       verificaAmministratore(sessione?.user);
       if (sessione?.user) caricaProfilo(sessione.user).then(() => { if (utenteAttivo?.id === sessione.user.id) caricaSchedine(sessione.user); });
@@ -770,7 +778,8 @@
         b.setAttribute("aria-current", b.dataset.view === vista ? "page" : "false");
       });
       messaggio("");
-      if (vista === "classifica") caricaClassifica();
+             if (vista === "gioca" && utenteAttivo) caricaSchedine(utenteAttivo);
+       if (vista === "classifica") caricaClassifica();
       if (vista === "storico" && utenteAttivo) caricaStorico(utenteAttivo);
       if (vista === "admin" && adminAttivo) caricaGestione();
       if (vista === "profilo" && utenteAttivo) caricaProfilo(utenteAttivo);
@@ -793,9 +802,18 @@
       if (richiesta !== caricamento) return;
       if (error) { elenco.textContent = "Errore: " + error.message; return; }
       elenco.replaceChildren();
-      const aperte=(schedine||[]).filter(x=>new Date(x.scadenza).getTime()>Date.now());
-      if (!aperte.length) { elenco.innerHTML = '<div class="empty-state"><span>📭</span><h3>Nessuna schedina aperta</h3><p>Le tue giornate già giocate sono nello Storico. Attendi la prossima schedina!</p></div>'; return; }
-      const attuale=aperte.sort((a,b)=>new Date(a.scadenza)-new Date(b.scadenza))[0];
+             // Mostra la giornata piu recente finche manca almeno un risultato.
+       // Se la giornata e conclusa, passa alla successiva ancora da giocare.
+       const ordinate=[...(schedine||[])].sort((a,b)=>Number(b.id)-Number(a.id));
+       let attuale=null;
+       for(const candidato of ordinate){
+         const {data:risultati,error:er}=await client.from("matches").select("home_score,away_score").eq("schedina_id",candidato.id);
+         if(richiesta!==caricamento)return;
+         if(er){elenco.textContent="Impossibile controllare i risultati: "+er.message;return;}
+         const completa=risultati?.length===4&&risultati.every(p=>p.home_score!==null&&p.away_score!==null);
+         if(!completa){attuale=candidato;break;}
+       }
+       if(!attuale){elenco.innerHTML='<div class="empty-state"><span>📭</span><h3>Nessuna schedina in corso</h3><p>Le giornate concluse sono nello Storico. Attendi la prossima schedina!</p></div>';return;}
       for (const schedina of [attuale]) {
         if (richiesta !== caricamento) return;
         const {data:partite,error:ep} = await client.from("matches")
@@ -830,14 +848,31 @@
           if(Date.now()>=countdownDeadline){clearInterval(countdownTimer);aggiorna();}
         },1000);
         if(ep || partite?.length!==4){const p=document.createElement("p");p.textContent=ep?.message||"Schedina incompleta.";card.appendChild(p);continue;}
-        const {data:statoSquadra,error:es}=await client.rpc("leggi_schedina_squadra",{p_schedina_id:schedina.id});
+                 const gestioneAdmin=!!(adminAttivo&&squadraGestitaAdmin);
+         let statoSquadra,es;
+         if(gestioneAdmin){
+           const risposta=await client.rpc("visualizza_pronostici_admin",{p_schedina_id:schedina.id,p_squadra_id:squadraGestitaAdmin.id});
+           es=risposta.error;
+           statoSquadra={pronostici:{}};
+           for(const r of risposta.data||[]){
+             const partita=partite.find(p=>Number(p.posizione)===Number(r.posizione));
+             if(partita&&["1","X","2"].includes(r.pronostico))statoSquadra.pronostici[String(partita.id)]=r.pronostico;
+           }
+         }else{
+           const risposta=await client.rpc("leggi_schedina_squadra",{p_schedina_id:schedina.id});
+           statoSquadra=risposta.data;es=risposta.error;
+         }
         if (richiesta !== caricamento) return;
         if(es){const p=document.createElement("p");p.textContent="Errore lettura schedina della squadra: "+es.message;card.appendChild(p);continue;}
         const datiSquadra=statoSquadra?.pronostici||{};
         const originali=new Map(partite.filter(p=>["1","X","2"].includes(datiSquadra[String(p.id)])).map(p=>[p.id,datiSquadra[String(p.id)]]));
         const bozze=new Map(originali);
         const limiti=new Map(partite.map(p=>[p.id,Math.min(new Date(schedina.scadenza).getTime(),new Date(p.match_date).getTime())]));
-        const scaduta=()=>partite.some(p=>Date.now()>=limiti.get(p.id));
+                 const scaduta=()=>partite.some(p=>Date.now()>=limiti.get(p.id));
+         if(gestioneAdmin){card.prepend(el('div','🛡️ Stai gestendo: '+squadraGestitaAdmin.nome,'closed-notice'));}
+         if(scaduta()){
+           card.append(el('div','🔒 Scadenza superata. La schedina resta qui in sola lettura finché non saranno inseriti tutti e quattro i risultati. Poi sarà disponibile nello Storico.','closed-notice'));
+         }
         const rows=[];
         const bar=document.createElement("div");bar.className="savebar";
         const salva=document.createElement("button");salva.type="button";salva.textContent="✓ Conferma pronostici";
@@ -888,10 +923,9 @@
           if(scaduta()||partite.some(p=>!bozze.has(p.id))){aggiorna();return;}
           salva.dataset.busy="1";aggiorna();
           const valori=Object.fromEntries(partite.map(p=>[String(p.id),bozze.get(p.id)]));
-          const {data:conferma,error}=await client.rpc("conferma_schedina_squadra",{
-            p_schedina_id:schedina.id,
-            p_pronostici:valori
-          });
+                     const {data:conferma,error}=gestioneAdmin
+             ? await client.rpc("conferma_schedina_admin",{p_schedina_id:schedina.id,p_squadra_id:squadraGestitaAdmin.id,p_pronostici:valori})
+             : await client.rpc("conferma_schedina_squadra",{p_schedina_id:schedina.id,p_pronostici:valori});
           salva.dataset.busy="0";
           if(error){
             messaggio("Pronostici non confermati: "+error.message,true);
@@ -1034,9 +1068,26 @@
       if(error){messaggio("Squadre: "+error.message,true);return;}
       squadreDisponibili=data||[];
       const select=$("squadraDaAutorizzare");select.replaceChildren();
-      for(const s of squadreDisponibili){const o=document.createElement("option");o.value=s.id;o.textContent=s.nome;select.appendChild(o);}
+             for(const s of squadreDisponibili){const o=document.createElement("option");o.value=s.id;o.textContent=s.nome;select.appendChild(o);}
+       const gestisci=$("squadraDaGestire");gestisci.replaceChildren();
+       for(const s of squadreDisponibili){const o=document.createElement("option");o.value=s.id;o.textContent=s.nome;gestisci.appendChild(o);}
     }
-    async function caricaProfilo(user) {
+         $("apriSquadraAdmin").onclick=()=>{
+       if(!adminAttivo||!utenteAttivo)return;
+       const id=Number($("squadraDaGestire").value);
+       const squadra=squadreDisponibili.find(s=>Number(s.id)===id);
+       if(!squadra)return messaggio("Seleziona una squadra.",true);
+       squadraGestitaAdmin=squadra;
+       $("squadraAdminGioca").textContent="Squadra selezionata: "+squadra.nome;
+       $("modalitaAdminGioca").hidden=false;
+       cambiaVista("gioca");
+     };
+     $("tornaAllaMiaSquadra").onclick=()=>{
+       squadraGestitaAdmin=null;
+       $("modalitaAdminGioca").hidden=true;
+       if(utenteAttivo)caricaSchedine(utenteAttivo);
+     };
+     async function caricaProfilo(user) {
       if(!user) return;
       const email=(user.email||"").trim().toLowerCase();
       const [{data:prof}, {data:authz,error:ea}]=await Promise.all([
