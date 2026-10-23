@@ -228,6 +228,8 @@
 
 
     /* Messaggi accesso e registrazione ben visibili */
+    .auth-guida{display:grid;gap:5px;text-align:left;background:#ecfdf5;color:#14532d;border:1px solid #86efac;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:13px;line-height:1.5}
+    .auth-guida strong{font-size:14px}
     .auth-avviso{margin:14px 0 12px;padding:15px 16px;border-radius:14px;text-align:left;font-size:15px;line-height:1.5;font-weight:650;border:2px solid #fbbf24;background:#fff8df;color:#713f12;box-shadow:0 5px 18px #0002}
     .auth-avviso[hidden]{display:none!important}
     .auth-avviso.auth-errore{background:#fff1f2;border-color:#fb7185;color:#881337}
@@ -447,7 +449,7 @@
     <!-- ACCESSO E REGISTRAZIONE -->
     <div id="accesso">
       <div class="login-brand"><span class="login-trophy">🏆</span><div class="login-league">LegaLize 3</div><div class="login-subleague">🇮🇹 ZeLeague 🇮🇹</div></div>
-      <div class="login-card"><div class="login-title">Fanta Schedina</div><div class="login-subtitle">LegaLize 3 – ZeLeague</div><div class="login-divider">⚽</div><p class="login-caption">Accedi con il tuo account autorizzato</p>
+      <div class="login-card"><div class="login-title">Fanta Schedina</div><div class="login-subtitle">LegaLize 3 – ZeLeague</div><div class="login-divider">⚽</div><p class="login-caption">Accedi con il tuo account autorizzato</p><div class="auth-guida"><strong>📝 Prima volta qui?</strong><span>Inserisci la tua <b>email autorizzata</b> e una <b>password</b>, poi premi <b>Registrati</b>. Se hai già un account, premi <b>Accedi</b>.</span></div>
 
       <input
         id="email"
@@ -554,7 +556,7 @@
           <p>Nome giocatore: <strong id="nomeAttuale">—</strong></p>
           <label for="nomeProfilo">Cambia nome giocatore</label><input id="nomeProfilo" maxlength="40" placeholder="Il tuo nome">
           <button id="salvaNome">Salva nome</button>
-          <h3>🔑 Cambia password</h3><label for="pwProfilo">Nuova password</label><input type="password" id="pwProfilo" autocomplete="new-password" placeholder="Almeno 8 caratteri">
+          <h3>🔑 Cambia password</h3><label for="pwProfilo">Nuova password</label><input type="password" id="pwProfilo" autocomplete="new-password" placeholder="Nuova password">
           <label for="pwConferma">Conferma nuova password</label><input type="password" id="pwConferma" autocomplete="new-password" placeholder="Ripeti la password">
           <button id="cambiaPasswordProfilo">Aggiorna password</button>
           <button id="esci" class="secondario">Esci dall'account</button></div>
@@ -946,7 +948,7 @@
     };
     $("cambiaPasswordProfilo").onclick=async()=>{
       const p=$("pwProfilo").value,c=$("pwConferma").value;
-      if(p.length<8)return messaggio("La password deve avere almeno 8 caratteri.",true);
+      if(!p)return messaggio("Inserisci una nuova password.",true);
       if(p!==c)return messaggio("Le due password non coincidono.",true);
       const b=$("cambiaPasswordProfilo");b.disabled=true;
       const {error}=await client.auth.updateUser({password:p});b.disabled=false;
@@ -1215,7 +1217,7 @@
       if (testo.includes("already registered") || testo.includes("already exists") || testo.includes("user already registered"))
         return ["Email già registrata", "Questo indirizzo risulta già registrato. Prova ad accedere oppure recupera la password."];
       if (testo.includes("password") && (testo.includes("weak") || testo.includes("short") || testo.includes("least")))
-        return ["Password troppo debole", "Scegli una password più lunga e sicura (almeno 6 caratteri)."];
+        return ["Password troppo debole", "La password non è stata accettata dal servizio di accesso. Prova un’altra password."];
       if (testo.includes("invalid email") || testo.includes("email address") || testo.includes("email_address_invalid"))
         return ["Indirizzo email non valido", "Controlla l'indirizzo email e riprova."];
       if (testo.includes("signup is disabled") || testo.includes("signups not allowed"))
@@ -1226,14 +1228,13 @@
       const {email,password} = credenziali();
       if (!email && !password) {
         avvisoAccesso(operazione === "registrazione" ? "Come registrarti" : "Inserisci le credenziali",
-          operazione === "registrazione" ? "Per registrarti inserisci la tua email autorizzata e una password di almeno 6 caratteri, poi clicca su «Registrati»." : "Inserisci la tua email e la password, poi clicca su «Accedi».",
+          operazione === "registrazione" ? "Per registrarti inserisci la tua email autorizzata e una password, poi clicca su «Registrati»." : "Inserisci la tua email e la password, poi clicca su «Accedi».",
           "info", ["email","password"]);
         return null;
       }
       if (!email) {avvisoAccesso("Email mancante", "Inserisci l'indirizzo email autorizzato dalla lega.", "errore", ["email"]);return null;}
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {avvisoAccesso("Email non valida", "Inserisci un indirizzo email completo, ad esempio nome@email.it.", "errore", ["email"]);return null;}
       if (!password) {avvisoAccesso("Password mancante", "Inserisci la password prima di continuare.", "errore", ["password"]);return null;}
-      if (operazione === "registrazione" && password.length < 6) {avvisoAccesso("Password troppo corta", "Per registrarti usa una password di almeno 6 caratteri.", "errore", ["password"]);return null;}
       return {email,password};
     }
     async function eseguiAutenticazione(tipo) {
@@ -1288,11 +1289,8 @@
     $("salvaPassword").onclick = async () => {
       const password = $("passwordNuova").value;
 
-      if (password.length < 6) {
-        return messaggio(
-          "La password deve avere almeno 6 caratteri.",
-          true
-        );
+      if (!password) {
+        return messaggio("Inserisci una nuova password.", true);
       }
 
       const { error } = await client.auth.updateUser({
