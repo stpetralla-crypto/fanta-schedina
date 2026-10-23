@@ -474,6 +474,15 @@
     .admin-mode-banner{padding:14px;border:2px solid #eab308;border-radius:13px;background:#fffbeb;margin:12px 0;color:#713f12}
     .admin-mode-banner strong{display:block;margin-bottom:5px}
     .admin-mode-banner button{background:#475569}
+    .home-day{background:linear-gradient(125deg,#103e2b,#176b42);color:white;border-radius:18px;padding:20px;margin-bottom:19px;box-shadow:0 9px 23px #123d2a20}
+    .home-day .home-kicker{font-size:11px;letter-spacing:2px;font-weight:800;color:#b9f7cc}
+    .home-day h2{font-size:24px;color:white;margin:8px 0}
+    .home-day p{color:#e2f4e8;margin:7px 0}
+    .home-day .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
+    .home-day .home-stat{background:#ffffff16;border:1px solid #ffffff2a;border-radius:12px;padding:12px}
+    .home-day .home-stat small{display:block;color:#c8eed5;font-size:11px;margin-bottom:5px}
+    .home-day .home-stat strong{font-size:14px;overflow-wrap:anywhere}
+    @media(max-width:450px){.home-day{padding:15px}.home-day .home-grid{grid-template-columns:1fr}}
     .closed-notice{background:#eef2f7;border:1px solid #cbd5e1;border-radius:11px;padding:12px;margin:12px 0;color:#334155;font-size:13px}
   </style>
 </head>
@@ -528,6 +537,11 @@
         <button type="button" data-view="profilo">👤 Profilo</button>
       </nav>
       <section id="view-gioca" class="view">
+        <div class="home-day" id="homeGiornata" aria-live="polite">
+          <span class="home-kicker">🏟️ IL TUO SPOGLIATOIO</span>
+          <h2>Benvenuto in campo!</h2>
+          <p>Prepariamo la tua giornata...</p>
+        </div>
         <div id="areaPronostici">
           <h2>⚽ Schedina da giocare</h2>
           <p class="info">Scegli 1 (casa), X (pareggio) o 2 (ospite). Premi <strong>Conferma pronostici</strong> per salvarli. Puoi modificarli fino alla scadenza indicata.</p>
@@ -788,6 +802,29 @@
       b.onclick = () => cambiaVista(b.dataset.view);
     });
 
+    // HOME DELLA GIORNATA: SOLO PRESENTAZIONE, NESSUNA MODIFICA ALLE REGOLE
+    function aggiornaHome(schedina,partite,originali){
+      const home=$("homeGiornata");
+      home.replaceChildren();
+      const kicker=el("span","🏟️ IL TUO SPOGLIATOIO","home-kicker");
+      const squadra=(adminAttivo&&squadraGestitaAdmin?.nome)||autorizzazioneAttiva?.nome_squadra||"La tua squadra";
+      const h=el("h2","⚽ "+squadra);
+      const p=el("p",schedina?schedina.titolo:"Nessuna giornata in corso");
+      const grid=el("div",undefined,"home-grid");
+      function stat(etichetta,valore){const box=el("div",undefined,"home-stat");box.append(el("small",etichetta),el("strong",valore));grid.append(box);}
+      if(schedina){
+        const scadenza=new Date(schedina.scadenza).getTime();
+        const chiusa=Date.now()>=scadenza||(partite||[]).some(x=>Date.now()>=new Date(x.match_date).getTime());
+        const completata=(partite||[]).length===4&&(partite||[]).every(x=>originali?.has(x.id));
+        stat("📋 Stato pronostici",completata?"✅ 4 su 4 confermati":chiusa?"🔒 Non confermati":"⚠️ Da completare");
+        stat("⏱️ Scadenza",chiusa?"🔒 Chiusa":new Date(scadenza).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}));
+        if(chiusa) p.textContent+=" · In attesa dei risultati";
+      }else{
+        stat("📋 Stato giornata","In attesa della prossima schedina");
+      }
+      home.append(kicker,h,p,grid);
+    }
+
     // PRONOSTICI: LA SCELTA E' UNA BOZZA FINO ALLA CONFERMA
     async function caricaSchedine(user) {
       const richiesta = ++caricamento;
@@ -797,6 +834,7 @@
       }
       const elenco = $("elencoSchedine");
       elenco.textContent = "Caricamento schedine...";
+      aggiornaHome(null);
       const { data: schedine, error } = await client.from("schedine")
         .select("id,titolo,scadenza").order("id", {ascending:false});
       if (richiesta !== caricamento) return;
@@ -813,7 +851,7 @@
          const completa=risultati?.length===4&&risultati.every(p=>p.home_score!==null&&p.away_score!==null);
          if(!completa){attuale=candidato;break;}
        }
-       if(!attuale){elenco.innerHTML='<div class="empty-state"><span>📭</span><h3>Nessuna schedina in corso</h3><p>Le giornate concluse sono nello Storico. Attendi la prossima schedina!</p></div>';return;}
+       if(!attuale){aggiornaHome(null);elenco.innerHTML='<div class="empty-state"><span>📭</span><h3>Nessuna schedina in corso</h3><p>Le giornate concluse sono nello Storico. Attendi la prossima schedina!</p></div>';return;}
       for (const schedina of [attuale]) {
         if (richiesta !== caricamento) return;
         const {data:partite,error:ep} = await client.from("matches")
@@ -867,6 +905,7 @@
         const datiSquadra=statoSquadra?.pronostici||{};
         const originali=new Map(partite.filter(p=>["1","X","2"].includes(datiSquadra[String(p.id)])).map(p=>[p.id,datiSquadra[String(p.id)]]));
         const bozze=new Map(originali);
+        aggiornaHome(schedina,partite,originali);
         const limiti=new Map(partite.map(p=>[p.id,Math.min(new Date(schedina.scadenza).getTime(),new Date(p.match_date).getTime())]));
                  const scaduta=()=>partite.some(p=>Date.now()>=limiti.get(p.id));
          if(gestioneAdmin){card.prepend(el('div','🛡️ Stai gestendo: '+squadraGestitaAdmin.nome,'closed-notice'));}
@@ -934,6 +973,7 @@
           }
           for(const p of partite)originali.set(p.id,bozze.get(p.id));
           mostraRicevuta();
+          aggiornaHome(schedina,partite,originali);
           if(adminAttivo)caricaStatoSchedine();
           aggiorna();
           messaggio("✓ Schedina completa confermata! Vale l'ultima conferma della squadra prima della scadenza.");
