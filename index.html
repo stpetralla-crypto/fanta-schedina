@@ -450,6 +450,27 @@
     .champion-tag {display:inline-block;font-size:11px;font-weight:800;color:#854d0e;background:#fef3c7;border:1px solid #fde68a;border-radius:20px;padding:3px 8px;margin-top:4px}
     .archive-day-title,.archive-team-name {overflow-wrap:anywhere}
     @media(max-width:550px){.countdown-box{padding:11px;align-items:flex-start;flex-direction:column;gap:4px}.countdown-box strong{font-size:17px}.confirm-receipt{padding:12px}.archive-day summary,.archive-team summary{font-size:13px}.archive-match{font-size:12px}.nav button{font-size:12px}}
+
+    /* Premi e Gazzetta: decorazioni basate solo sui dati gia disponibili */
+    .leader-party{position:relative;overflow:hidden;border:1px solid #e9c36c;border-radius:16px;background:linear-gradient(115deg,#fff6d9,#fffdf4);padding:17px 19px;margin:13px 0;box-shadow:0 5px 18px #9a670017}
+    .leader-party h3{margin:0 0 6px;color:#80520b;font-size:20px}.leader-party p{margin:0;color:#775c2b;font-size:13px;line-height:1.5}
+    .leader-party:after{content:'🎊';position:absolute;right:12px;top:8px;font-size:44px;opacity:.4;transform:rotate(12deg)}
+    .leader-crown{display:inline-block;margin-right:5px;animation:crown-pop 1.1s ease-out both}
+    @keyframes crown-pop{0%{transform:scale(.5) rotate(-15deg);opacity:.3}70%{transform:scale(1.2) rotate(7deg)}100%{transform:scale(1);opacity:1}}
+    .award-strip{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .award{display:inline-block;border-radius:99px;background:#fff7dd;border:1px solid #e8d6a3;color:#80520b;padding:4px 8px;font-size:10px;font-weight:850}
+    .award.perfect{background:#fff0bd;border-color:#eab308}.award.silver{background:#edf2f7;border-color:#cbd5e1;color:#475569}
+    .mvp-panel{border:1px solid #e5c16a;background:linear-gradient(110deg,#fff6d9,#fffdf4);border-radius:12px;padding:12px 14px;margin:12px 0}
+    .mvp-panel strong{display:block;color:#80520b;font-size:14px}.mvp-panel p{margin:5px 0 0;font-size:12px;color:#775c2b}
+    .gazetta{border:1px solid #c9ded2;border-radius:17px;background:#fffdf6;overflow:hidden;margin:14px 0;box-shadow:0 5px 18px #1c49300d}
+    .gazetta-masthead{background:#123b2b;color:#fff;padding:13px 16px;text-align:center;font-family:Georgia,serif;font-size:22px;font-weight:900;letter-spacing:.02em}
+    .gazetta-kicker{font-size:10px;font-weight:900;letter-spacing:.15em;color:#718271;margin:13px 15px 0}
+    .gazetta-title{font-family:Georgia,serif;font-size:21px;line-height:1.2;color:#173d2a;font-weight:900;margin:7px 15px}
+    .gazetta-body{font-size:13px;color:#46594b;line-height:1.6;margin:7px 15px 16px}
+    .gazetta-mini{background:#f7faf6;border:1px solid #dce8de;border-radius:10px;padding:11px 13px;margin:12px 0}
+    .gazetta-mini strong{font-family:Georgia,serif;font-size:14px;color:#24543a}.gazetta-mini p{font-size:12px;color:#55675a;margin:5px 0 0;line-height:1.5}
+    @media(max-width:550px){.leader-party{padding:13px}.leader-party h3{font-size:17px}.gazetta-title{font-size:18px}.gazetta-masthead{font-size:19px}}
+    @media(prefers-reduced-motion:reduce){.leader-crown{animation:none}}
   </style>
 </head>
 
@@ -513,7 +534,8 @@
       <section id="view-storico" class="view" hidden>
         <div class="section-intro"><span class="eyebrow">LE TUE GIORNATE</span><h2>📚 Storico delle squadre</h2><p class="info">Pronostici delle squadre dopo la scadenza, con risultati, risposte esatte e punti.</p></div>
         <button id="aggiornaStorico" class="secondario">↻ Aggiorna storico</button>
-        <div id="listaStorico" aria-live="polite">Caricamento...</div>
+        <div id="gazzettaStorico" aria-live="polite"></div>
+         <div id="listaStorico" aria-live="polite">Caricamento...</div>
       </section>
       <section id="view-classifica" class="view" hidden>
         <h2>🏆 Classifica della lega</h2><p class="info">La graduatoria generale delle squadre. Risultati e pronostici sono conservati esclusivamente nello Storico.</p>
@@ -887,6 +909,28 @@
       }
     }
 
+    // Premi e notizie: nessuna scrittura sul database, nessun cambiamento ai punteggi.
+    function riassuntoGiornata(g){
+      const squadre=[...g.squadre.values()];
+      const complete=squadre.map(s=>{
+        const r=s.righe;
+        if(r.length!==4||r.some(x=>x.risultato===null||x.risultato===undefined))return {...s,completata:false,corretti:0,punti:null};
+        const corretti=r.filter(x=>x.esatto===true).length;
+        return {...s,completata:true,corretti,punti:corretti===4?10:corretti===3?5:0};
+      });
+      const finite=complete.filter(s=>s.completata);
+      const maxCorretti=finite.length?Math.max(...finite.map(s=>s.corretti)):null;
+      const mvp=maxCorretti!==null&&maxCorretti>0?finite.filter(s=>s.corretti===maxCorretti):[];
+      return {squadre:complete,finite,maxCorretti,mvp};
+    }
+    function notiziaGiornata(g){
+      const stats=riassuntoGiornata(g);
+      if(!stats.finite.length)return {titolo:'La giornata aspetta il verdetto',testo:'I pronostici sono consultabili, ma i risultati non sono ancora completi. La cronaca arriverà appena saranno inseriti tutti i risultati.'};
+      const perfette=stats.finite.filter(s=>s.corretti===4);
+      if(perfette.length)return {titolo:'Schedina perfetta! '+perfette.map(s=>s.nome).join(' e ')+' da applausi',testo:'Quattro pronostici su quattro: 10 punti conquistati. '+(stats.mvp.length>1?'MVP a pari merito per '+stats.mvp.map(s=>s.nome).join(', ')+'.':'Il premio MVP va a '+stats.mvp[0].nome+'.')};
+      if(stats.mvp.length){const nomi=stats.mvp.map(s=>s.nome).join(' e ');return {titolo:'Il campo premia '+nomi,testo:stats.maxCorretti+' pronostici esatti su 4 per '+(stats.mvp.length>1?'le migliori squadre':'la miglior squadra')+' della giornata. '+(stats.maxCorretti===3?'Cinque punti preziosi per la corsa al titolo.':'La lotta resta aperta: ogni giornata può cambiare la classifica.')};}
+      return {titolo:'Giornata imprevedibile: nessun pronostico esatto',testo:'Questa volta il pallone ha sorpreso tutti. Si riparte dalla prossima schedina!'};
+    }
     // ARCHIVIO: una sezione per ogni schedina, richiudibile e scalabile.
     let richiestaStorico=0;
     async function caricaStorico(user){
@@ -895,6 +939,7 @@
       const {data,error}=await client.rpc("dettaglio_pronostici_squadre");
       if(richiesta!==richiestaStorico)return;
       target.replaceChildren();
+      const giornale=$("gazzettaStorico");giornale.replaceChildren();
       if(error){target.textContent="Storico non disponibile: "+error.message;return;}
       if(!data?.length){target.append(el('div','📚 Nessuna schedina archiviata per il momento.','empty-state'));return;}
       const giornate=new Map();
@@ -904,6 +949,15 @@
         if(!g.squadre.has(r.squadra_id))g.squadre.set(r.squadra_id,{nome:r.nome_squadra,mia:r.mia_squadra,righe:[]});
         g.squadre.get(r.squadra_id).righe.push(r);
       }
+      // La Gazzetta racconta l'ultima giornata usando esclusivamente i dati dello Storico.
+      const ultima=[...giornate.values()][0];
+      const articolo=notiziaGiornata(ultima);
+      const giornaleCard=el('article',undefined,'gazetta');
+      giornaleCard.append(el('div','📰 La Gazzetta di LegaLize','gazetta-masthead'));
+      giornaleCard.append(el('div','ULTIMISSIME · '+ultima.titolo,'gazetta-kicker'));
+      giornaleCard.append(el('h3',articolo.titolo,'gazetta-title'));
+      giornaleCard.append(el('p',articolo.testo,'gazetta-body'));
+      giornale.append(giornaleCard);
       const bar=el('div',undefined,'archive-toolbar');
       bar.append(el('strong','🏟️ Archivio delle giornate'));
       bar.append(el('span',giornate.size+' '+(giornate.size===1?'schedina archiviata':'schedine archiviate'),'archive-count'));
@@ -923,7 +977,17 @@
           const n=r.filter(x=>x.esatto===true).length;
           return n===4?10:n===3?5:0;
         });
-        const massimo=punteggi.filter(x=>x!==null).reduce((a,b)=>Math.max(a,b),-1);
+        const stats=riassuntoGiornata(g);
+        if(stats.mvp.length){
+          const premio=el('div',undefined,'mvp-panel');
+          premio.append(el('strong','🏅 MVP della giornata'+(stats.mvp.length>1?' · ex aequo':'')));
+          premio.append(el('p',stats.mvp.map(s=>s.nome).join(' · ')+' — '+stats.maxCorretti+'/4 pronostici esatti'));
+          content.append(premio);
+        }
+        const notizia=notiziaGiornata(g);
+        const mini=el('div',undefined,'gazetta-mini');
+        mini.append(el('strong','📰 '+notizia.titolo),el('p',notizia.testo));
+        content.append(mini);
         for(const [squadraIndex,squadra] of squadre.entries()){
           const righe=squadra.righe.sort((a,b)=>a.posizione-b.posizione);
           const completata=righe.length===4&&righe.every(r=>r.risultato!==null);
@@ -933,7 +997,11 @@
           const summary=el('summary');const name=el('div');
           name.append(el('div',(squadra.mia?'🟢 ':'')+squadra.nome,'archive-team-name'));
           if(squadra.mia)name.append(el('span','LA TUA SQUADRA','ranking-me'));
-          if(massimo>0&&punteggi[squadraIndex]===massimo)name.append(el('span','🏆 Miglior squadra della giornata','champion-tag'));
+          const premi=el('div',undefined,'award-strip');
+          if(stats.mvp.some(s=>s.nome===squadra.nome))premi.append(el('span','🏅 MVP DELLA GIORNATA','award'));
+          if(completata&&corretti===4)premi.append(el('span','🏆 SCHEDINA PERFETTA','award perfect'));
+          else if(completata&&corretti===3)premi.append(el('span','🥈 QUASI PERFETTA','award silver'));
+          if(premi.childElementCount)name.append(premi);
           summary.append(name,el('span',completata?'🎯 '+corretti+'/4 · '+punti+' pt':'⏳ Risultati in attesa','archive-team-score'));
           team.append(summary);
           const matches=el('div',undefined,'archive-matches');
@@ -1025,12 +1093,21 @@
         Number(b.schedine_giocate||0)-Number(a.schedine_giocate||0)||
         String(a.nome_squadra||'').localeCompare(String(b.nome_squadra||''),'it')
       );
+      const puntiCapolista=Number(ordinata[0]?.punti_totali||0);
+      const capoliste=ordinata.filter(p=>Number(p.punti_totali||0)===puntiCapolista);
+      const celebrazione=el('div',undefined,'leader-party');
+      celebrazione.append(el('h3','🎉 '+(capoliste.length===1?'Applausi alla capolista!':'Sfida al vertice!')));
+      celebrazione.append(el('p',(capoliste.length===1?'👑 '+capoliste[0].nome_squadra+' guida la Lega con ':capoliste.map(p=>p.nome_squadra).join(' · ')+' condividono il primo posto con ')+puntiCapolista+' punti. La corsa al titolo continua!'));
+      target.append(celebrazione);
       for(const [i,p] of ordinata.entries()){
         const isMine=mia!==null&&mia===p.nome_squadra;
         const card=el('div',undefined,'ranking-card'+(isMine?' mine':''));
         card.append(el('div',i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1)+'°','ranking-rank'));
         const main=el('div');
-        main.append(el('div',p.nome_squadra||'Squadra da assegnare','ranking-name'));
+        const nomeClassifica=el('div',undefined,'ranking-name');
+        if(Number(p.punti_totali||0)===puntiCapolista)nomeClassifica.append(el('span','👑','leader-crown'));
+        nomeClassifica.append(document.createTextNode(p.nome_squadra||'Squadra da assegnare'));
+        main.append(nomeClassifica);
         const n=Number(p.schedine_giocate||0);
         main.append(el('div',n+' '+(n===1?'giornata giocata':'giornate giocate'),'ranking-meta'));
         if(isMine)main.append(el('span','● LA TUA SQUADRA','ranking-me'));
