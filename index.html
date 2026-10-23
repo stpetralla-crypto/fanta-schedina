@@ -226,6 +226,16 @@
     @media(max-width:550px){.admin-fold>summary{padding:15px;font-size:16px}.admin-fold-body{padding:12px}}
     @media(max-width:550px){.nav button{flex:1 1 29%;font-size:12px}.history-card{padding:14px}}
 
+
+    /* Messaggi accesso e registrazione ben visibili */
+    .auth-avviso{margin:14px 0 12px;padding:15px 16px;border-radius:14px;text-align:left;font-size:15px;line-height:1.5;font-weight:650;border:2px solid #fbbf24;background:#fff8df;color:#713f12;box-shadow:0 5px 18px #0002}
+    .auth-avviso[hidden]{display:none!important}
+    .auth-avviso.auth-errore{background:#fff1f2;border-color:#fb7185;color:#881337}
+    .auth-avviso.auth-successo{background:#ecfdf5;border-color:#34d399;color:#064e3b}
+    .auth-avviso strong{display:block;font-size:16px;margin-bottom:4px}
+    #accesso input.auth-input-errore{outline:3px solid #fb7185;outline-offset:1px;border-color:#e11d48!important}
+    #accesso button:disabled{opacity:.65;cursor:wait}
+
     /* Nuova grafica Matera / LegaLize 3. L'immagine deve essere nella radice GitHub. */
     body:has(#accesso:not([hidden])) {background:#07192e url('sfondo-matera.png') center center / cover fixed no-repeat;min-height:100vh;padding:0;}
     body:has(#accesso:not([hidden]))::before {content:"";position:fixed;inset:0;background:linear-gradient(180deg,rgba(5,22,48,.25),rgba(5,22,48,.06) 48%,rgba(3,14,32,.64));pointer-events:none;}
@@ -452,6 +462,8 @@
         placeholder="Password"
         autocomplete="current-password"
       >
+
+      <div id="auth-avviso" class="auth-avviso" role="alert" aria-live="assertive" hidden></div>
 
       <button id="entra">Accedi</button>
 
@@ -1175,78 +1187,100 @@
       });
     });
 
-    // REGISTRAZIONE
-
-    $("registrati").onclick = async () => {
-      const { email, password } = credenziali();
-
-      if (!email || password.length < 6) {
-        return messaggio(
-          "Inserisci un'email e una password di almeno 6 caratteri.",
-          true
-        );
+    // MESSAGGI CHIARI PER ACCESSO E REGISTRAZIONE
+    function avvisoAccesso(titolo, testo, tipo = "errore", campi = []) {
+      const box = $("auth-avviso");
+      box.replaceChildren();
+      const intestazione = document.createElement("strong");
+      intestazione.textContent = (tipo === "successo" ? "✅ " : tipo === "info" ? "ℹ️ " : "⚠️ ") + titolo;
+      const descrizione = document.createElement("span");
+      descrizione.textContent = testo;
+      box.append(intestazione, descrizione);
+      box.className = "auth-avviso " + (tipo === "successo" ? "auth-successo" : tipo === "info" ? "" : "auth-errore");
+      box.hidden = false;
+      ["email", "password"].forEach(id => $(id).classList.toggle("auth-input-errore", campi.includes(id)));
+      box.scrollIntoView({behavior:"smooth",block:"nearest"});
+    }
+    function erroreAutenticazione(error, operazione) {
+      const testo = String(error?.message || "").toLowerCase();
+      const codice = String(error?.code || "").toLowerCase();
+      if (codice.includes("over_email_send_rate_limit") || testo.includes("rate limit") || testo.includes("too many"))
+        return ["Troppi tentativi", "Attendi qualche minuto prima di riprovare."];
+      if (testo.includes("failed to fetch") || testo.includes("network") || testo.includes("fetch"))
+        return ["Problema di connessione", "Controlla Internet e riprova tra poco."];
+      if (testo.includes("email not confirmed"))
+        return ["Email non confermata", "Apri la tua casella email e conferma la registrazione tramite il link ricevuto. Controlla anche lo spam."];
+      if (testo.includes("invalid login credentials") || testo.includes("invalid credentials"))
+        return ["Accesso non riuscito", "Email o password non corrette. Controlla i dati oppure usa «Password dimenticata?». Se non hai ancora un account, registrati prima."];
+      if (testo.includes("already registered") || testo.includes("already exists") || testo.includes("user already registered"))
+        return ["Email già registrata", "Questo indirizzo risulta già registrato. Prova ad accedere oppure recupera la password."];
+      if (testo.includes("password") && (testo.includes("weak") || testo.includes("short") || testo.includes("least")))
+        return ["Password troppo debole", "Scegli una password più lunga e sicura (almeno 6 caratteri)."];
+      if (testo.includes("invalid email") || testo.includes("email address") || testo.includes("email_address_invalid"))
+        return ["Indirizzo email non valido", "Controlla l'indirizzo email e riprova."];
+      if (testo.includes("signup is disabled") || testo.includes("signups not allowed"))
+        return ["Registrazioni non disponibili", "Contatta l'amministratore della lega."];
+      return [operazione === "registrazione" ? "Registrazione non riuscita" : "Operazione non riuscita", "Non è stato possibile completare l'operazione. Riprova; se il problema continua, contatta l'amministratore."];
+    }
+    function verificaCampi(operazione) {
+      const {email,password} = credenziali();
+      if (!email && !password) {
+        avvisoAccesso(operazione === "registrazione" ? "Come registrarti" : "Inserisci le credenziali",
+          operazione === "registrazione" ? "Per registrarti inserisci la tua email autorizzata e una password di almeno 6 caratteri, poi clicca su «Registrati»." : "Inserisci la tua email e la password, poi clicca su «Accedi».",
+          "info", ["email","password"]);
+        return null;
       }
-
-      const { error } = await client.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: sito
+      if (!email) {avvisoAccesso("Email mancante", "Inserisci l'indirizzo email autorizzato dalla lega.", "errore", ["email"]);return null;}
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {avvisoAccesso("Email non valida", "Inserisci un indirizzo email completo, ad esempio nome@email.it.", "errore", ["email"]);return null;}
+      if (!password) {avvisoAccesso("Password mancante", "Inserisci la password prima di continuare.", "errore", ["password"]);return null;}
+      if (operazione === "registrazione" && password.length < 6) {avvisoAccesso("Password troppo corta", "Per registrarti usa una password di almeno 6 caratteri.", "errore", ["password"]);return null;}
+      return {email,password};
+    }
+    async function eseguiAutenticazione(tipo) {
+      const dati = verificaCampi(tipo);
+      if (!dati) return;
+      const pulsante = $(tipo === "registrazione" ? "registrati" : "entra");
+      pulsante.disabled = true;
+      try {
+        const {error} = tipo === "registrazione"
+          ? await client.auth.signUp({email:dati.email,password:dati.password,options:{emailRedirectTo:sito}})
+          : await client.auth.signInWithPassword(dati);
+        if (error) {
+          const [titolo, testo] = erroreAutenticazione(error, tipo);
+          avvisoAccesso(titolo, testo);
+          return;
         }
-      });
-
-      if (error) {
-        return messaggio(error.message, true);
+        if (tipo === "registrazione") {
+          avvisoAccesso("Controlla la tua email", "Se la registrazione richiede conferma, apri il link ricevuto via email (controlla anche lo spam). Per partecipare devi utilizzare un indirizzo autorizzato dalla lega.", "successo");
+        } else {
+          avvisoAccesso("Accesso effettuato", "Benvenuto in Fanta Schedina!", "successo");
+        }
+      } catch (error) {
+        const [titolo, testo] = erroreAutenticazione(error, tipo);
+        avvisoAccesso(titolo, testo);
+      } finally {
+        pulsante.disabled = false;
       }
-
-      messaggio(
-        "Registrazione richiesta! Controlla la tua email per confermare l'account."
-      );
-    };
-
-    // ACCESSO
-
-    $("entra").onclick = async () => {
-      const { email, password } = credenziali();
-
-      const { error } =
-        await client.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (error) {
-        return messaggio(error.message, true);
-      }
-
-      messaggio("Accesso effettuato!");
-    };
+    }
+    $("registrati").onclick = () => eseguiAutenticazione("registrazione");
+    $("entra").onclick = () => eseguiAutenticazione("accesso");
+    ["email","password"].forEach(id => $(id).addEventListener("input", () => $(id).classList.remove("auth-input-errore")));
 
     // PASSWORD DIMENTICATA
-
     $("recupera").onclick = async () => {
       const email = $("email").value.trim();
-
-      if (!email) {
-        return messaggio(
-          "Inserisci prima la tua email.",
-          true
-        );
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        avvisoAccesso("Inserisci l'email", "Scrivi prima un indirizzo email valido nel campo in alto, poi clicca su «Password dimenticata?».", "info", ["email"]);
+        return;
       }
-
-      const { error } =
-        await client.auth.resetPasswordForEmail(
-          email,
-          { redirectTo: sito }
-        );
-
-      if (error) {
-        return messaggio(error.message, true);
-      }
-
-      messaggio(
-        "Se l'indirizzo è registrato, riceverai un'email per reimpostare la password."
-      );
+      $("recupera").disabled = true;
+      try {
+        const {error} = await client.auth.resetPasswordForEmail(email,{redirectTo:sito});
+        if (error) {const [titolo,testo] = erroreAutenticazione(error,"recupero");avvisoAccesso(titolo,testo);return;}
+        avvisoAccesso("Controlla la tua email", "Se l'indirizzo è registrato, riceverai un link per reimpostare la password. Controlla anche lo spam.", "successo");
+      } catch(error) {
+        const [titolo,testo] = erroreAutenticazione(error,"recupero");avvisoAccesso(titolo,testo);
+      } finally {$("recupera").disabled = false;}
     };
 
     // CAMBIO PASSWORD
