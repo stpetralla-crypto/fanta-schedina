@@ -484,6 +484,8 @@
     .home-day .home-stat strong{font-size:14px;overflow-wrap:anywhere}
     @media(max-width:450px){.home-day{padding:15px}.home-day .home-grid{grid-template-columns:1fr}}
     .closed-notice{background:#eef2f7;border:1px solid #cbd5e1;border-radius:11px;padding:12px;margin:12px 0;color:#334155;font-size:13px}
+     .pick-reminder{margin:11px 0 0;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:14px;font-weight:750;line-height:1.5}
+     .pick-reminder.ready{background:#fffbeb;border-color:#fbbf24;color:#92400e}
   </style>
 </head>
 
@@ -825,6 +827,27 @@
       home.append(kicker,h,p,grid);
     }
 
+    // Avviso solo prima della scadenza, senza modificare salvataggi o punteggi.
+    function aggiornaAvvisoPronostici(partite,originali,bozze,chiusa){
+      const home=$("homeGiornata");
+      home.querySelector(".pick-reminder")?.remove();
+      if(chiusa||!partite?.length)return;
+      const confermati=partite.filter(p=>originali.has(p.id)).length;
+      const selezionati=partite.filter(p=>bozze.has(p.id)).length;
+      const diversi=partite.some(p=>bozze.get(p.id)!==originali.get(p.id));
+      if(confermati===4&&!diversi)return;
+      const avviso=el("div",undefined,"pick-reminder"+(selezionati===4?" ready":""));
+      avviso.setAttribute("role","status");
+      if(selezionati===4){
+        avviso.textContent="🔔 Hai scelto tutte e 4 le partite, ma devi premere «Conferma pronostici» per salvare le tue scelte!";
+      }else if(selezionati===0){
+        avviso.textContent="🔔 Non hai ancora compilato la schedina. Scegli 1, X o 2 per tutte e 4 le partite e conferma prima della scadenza!";
+      }else{
+        avviso.textContent="🔔 Ti mancano "+(4-selezionati)+" pronostici. Completa la schedina e premi «Conferma pronostici» prima della scadenza!";
+      }
+      home.append(avviso);
+    }
+
     // PRONOSTICI: LA SCELTA E' UNA BOZZA FINO ALLA CONFERMA
     async function caricaSchedine(user) {
       const richiesta = ++caricamento;
@@ -937,6 +960,7 @@
             for(const b of row.buttons){b.disabled=chiusa||salva.dataset.busy==="1";b.classList.toggle("attivo",bozze.get(row.id)===b.dataset.value);b.classList.toggle("pending",bozze.get(row.id)!==originali.get(row.id));}
             row.note.textContent=originali.has(row.id)?"Confermato: "+originali.get(row.id):"Non ancora confermato";
           }
+          aggiornaAvvisoPronostici(partite,originali,bozze,chiusa);
           salva.disabled=chiusa||count!==4||salva.dataset.busy==="1";
           if(chiusa){status.textContent="Termine scaduto: non puoi più modificare.";status.className="";}
           else if(count<4){status.textContent="Seleziona tutte e 4 le partite ("+count+"/4).";status.className="warn";}
