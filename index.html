@@ -483,6 +483,26 @@
     .home-day .home-stat small{display:block;color:#c8eed5;font-size:11px;margin-bottom:5px}
     .home-day .home-stat strong{font-size:14px;overflow-wrap:anywhere}
     @media(max-width:450px){.home-day{padding:15px}.home-day .home-grid{grid-template-columns:1fr}}
+    /* Storico: Gazzetta e risultati in sezioni chiare */
+    .storico-sezione{margin:18px 0 24px;padding:17px;border:1px solid #d8e7dd;border-radius:16px;background:#f8fcf9}
+    .storico-sezione>h3{margin:0 0 5px;color:#14532d;font-size:21px}
+    .storico-sezione>.info{margin:0 0 13px}
+    .risultati-rapidi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+    .risultato-rapido{background:white;border:1px solid #dbe7df;border-radius:12px;padding:14px;text-align:center}
+    .risultato-rapido strong{display:block;color:#153c2b;font-size:14px;overflow-wrap:anywhere}
+    .risultato-rapido .score{display:block;font-size:24px;font-weight:900;color:#166534;margin:8px 0}
+    .risultato-rapido small{color:#64748b}
+    .stato-ultima{border:2px solid #16a34a;border-radius:15px;padding:14px;background:#f0fdf4;margin:12px 0}
+    .stato-ultima>h3{margin:0 0 5px;color:#14532d}
+    .stato-ultima>.panel{margin:10px 0 0;background:white}
+    .stato-precedenti{margin-top:17px;border-top:1px solid #dbe7df;padding-top:13px}
+    .stato-precedenti>h4{margin:0 0 9px;color:#475569}
+    .stato-passato{border:1px solid #e2e8f0;border-radius:11px;margin:7px 0;background:white;overflow:hidden}
+    .stato-passato>summary{cursor:pointer;padding:11px 13px;font-size:13px;font-weight:750;color:#475569}
+    .stato-passato>.panel{margin:0;padding:9px;border:0;background:#f8fafc}
+    .stato-passato .item{padding:9px;margin:6px 0;font-size:13px}
+    .stato-passato .item button{font-size:12px;padding:9px;min-height:38px}
+    @media(max-width:550px){.storico-sezione{padding:12px}.risultati-rapidi{grid-template-columns:1fr}.stato-ultima{padding:10px}}
     .closed-notice{background:#eef2f7;border:1px solid #cbd5e1;border-radius:11px;padding:12px;margin:12px 0;color:#334155;font-size:13px}
      .pick-reminder{margin:11px 0 0;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:14px;font-weight:750;line-height:1.5}
      .pick-reminder.ready{background:#fffbeb;border-color:#fbbf24;color:#92400e}
@@ -555,8 +575,18 @@
       <section id="view-storico" class="view" hidden>
         <div class="section-intro"><span class="eyebrow">LE TUE GIORNATE</span><h2>📚 Storico delle squadre</h2><p class="info">Pronostici delle squadre dopo la scadenza, con risultati, risposte esatte e punti.</p></div>
         <button id="aggiornaStorico" class="secondario">↻ Aggiorna storico</button>
-        <div id="gazzettaStorico" aria-live="polite"></div>
-         <div id="listaStorico" aria-live="polite">Caricamento...</div>
+        <section class="storico-sezione" aria-label="Fantagazzetta">
+          <h3>📰 La Fantagazzetta</h3><p class="info">Notizie, protagonisti e curiosità dell'ultima giornata.</p>
+          <div id="gazzettaStorico" aria-live="polite"></div>
+        </section>
+        <section class="storico-sezione" aria-label="Risultati delle partite">
+          <h3>🥅 Risultati delle partite</h3><p class="info">I quattro risultati dell'ultima giornata, subito in evidenza.</p>
+          <div id="risultatiStorico" aria-live="polite"></div>
+        </section>
+        <section class="storico-sezione" aria-label="Archivio dei pronostici">
+          <h3>📚 Archivio e pronostici</h3><p class="info">Apri una giornata e poi una squadra per vedere tutte le scelte e i punti.</p>
+          <div id="listaStorico" aria-live="polite">Caricamento...</div>
+        </section>
       </section>
       <section id="view-classifica" class="view" hidden>
         <h2>🏆 Classifica della lega</h2><p class="info">La graduatoria generale delle squadre. Risultati e pronostici sono conservati esclusivamente nello Storico.</p>
@@ -1085,6 +1115,7 @@
       if(richiesta!==richiestaStorico)return;
       target.replaceChildren();
       const giornale=$("gazzettaStorico");giornale.replaceChildren();
+      const risultatiRapidi=$("risultatiStorico");risultatiRapidi.replaceChildren();
       if(error){target.textContent="Storico non disponibile: "+error.message;return;}
       if(!data?.length){target.append(el('div','📚 Nessuna schedina archiviata per il momento.','empty-state'));return;}
       const giornate=new Map();
@@ -1096,6 +1127,21 @@
       }
       // La Gazzetta racconta l'ultima giornata usando esclusivamente i dati dello Storico.
       const ultima=[...giornate.values()][0];
+      const righeUltima=[...ultima.squadre.values()].flatMap(s=>s.righe);
+      const partiteViste=new Map();
+      for(const r of righeUltima){
+        const chiave=String(r.posizione);
+        if(!partiteViste.has(chiave))partiteViste.set(chiave,r);
+        else if(partiteViste.get(chiave).risultato==null&&r.risultato!=null)partiteViste.set(chiave,r);
+      }
+      risultatiRapidi.append(el('p','📅 '+ultima.titolo,'good'));
+      const grigliaRisultati=el('div',undefined,'risultati-rapidi');
+      for(const r of [...partiteViste.values()].sort((a,b)=>Number(a.posizione)-Number(b.posizione))){
+        const box=el('div',undefined,'risultato-rapido');
+        box.append(el('small','PARTITA '+r.posizione),el('strong',r.partita),el('span',r.risultato??'⏳ Risultato in attesa','score'));
+        grigliaRisultati.append(box);
+      }
+      risultatiRapidi.append(grigliaRisultati);
       const articolo=notiziaGiornata(ultima);
       const giornaleCard=el('article',undefined,'gazetta');
       giornaleCard.append(el('div','📰 La Gazzetta di LegaLize','gazetta-masthead'));
@@ -1423,13 +1469,27 @@
       target.replaceChildren();
       if(error){target.textContent="Impossibile caricare lo stato: "+error.message;return;}
       if(!data?.length){target.textContent="Nessuna squadra o schedina disponibile.";return;}
+      // Ultima schedina in primo piano; le precedenti restano visibili ma compatte.
+      const ultimaId=data.reduce((max,r)=>Math.max(max,Number(r.schedina_id)),Number.NEGATIVE_INFINITY);
+      const ultimaBox=el('section',undefined,'stato-ultima');
+      const passateBox=el('section',undefined,'stato-precedenti');
+      passateBox.append(el('h4','📚 Giornate precedenti · apri per consultare'));
+      target.append(ultimaBox,passateBox);
       let gruppo=null,contenitore=null;
-      for(const r of data){
+      for(const r of [...data].sort((a,b)=>Number(b.schedina_id)-Number(a.schedina_id)||String(a.nome_squadra).localeCompare(String(b.nome_squadra),'it'))){
         if(gruppo!==r.schedina_id){
           gruppo=r.schedina_id;
-          const intestazione=el("h3",r.titolo_schedina+" · Scadenza: "+formatoData(r.scadenza));
-          target.append(intestazione);
-          contenitore=el("div",undefined,"panel");target.append(contenitore);
+          const ultima=Number(gruppo)===ultimaId;
+          if(ultima){
+            ultimaBox.append(el('h3','🟢 ULTIMA SCHEDINA · '+r.titolo_schedina));
+            ultimaBox.append(el('p','Scadenza: '+formatoData(r.scadenza),'muted'));
+            contenitore=el('div',undefined,'panel');ultimaBox.append(contenitore);
+          }else{
+            const dettaglio=el('details',undefined,'stato-passato');
+            dettaglio.append(el('summary','📅 '+r.titolo_schedina+' · '+formatoData(r.scadenza)));
+            contenitore=el('div',undefined,'panel');dettaglio.append(contenitore);
+            passateBox.append(dettaglio);
+          }
         }
         const item=el("div",undefined,"item");
         item.append(el("strong",r.nome_squadra));
