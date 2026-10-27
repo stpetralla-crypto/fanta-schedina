@@ -507,6 +507,20 @@
      .pick-reminder{margin:11px 0 0;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:14px;font-weight:750;line-height:1.5}
      .pick-reminder.ready{background:#fffbeb;border-color:#fbbf24;color:#92400e}
   </style>
+
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "06fe63f7-b758-4a9b-9a21-656b3620b816",
+      serviceWorkerPath: "OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/fanta-schedina/" }
+    });
+  });
+</script>
+
+
 </head>
 
 <body>
