@@ -584,7 +584,7 @@
           <div id="risultatiStorico" aria-live="polite"></div>
         </section>
         <section class="storico-sezione" aria-label="Archivio dei pronostici">
-          <h3>📚 Archivio e pronostici</h3><p class="info">Apri una giornata e poi una squadra per vedere tutte le scelte e i punti.</p>
+          <h3>📚 Archivio e pronostici</h3><p class="info">Tutte le giornate, le squadre, i pronostici e i punti sono subito visibili. Puoi richiudere i dettagli che non ti servono.</p>
           <div id="listaStorico" aria-live="polite">Caricamento...</div>
         </section>
       </section>
@@ -1160,9 +1160,9 @@
       target.append(bar);
       let indice=0;
       for(const [id,g] of giornate){
-        const day=el('details',undefined,'archive-day');day.open=indice++===0;
+        const day=el('details',undefined,'archive-day');day.open=true;const primaGiornata=indice++===0;
         const head=el('summary');const label=el('div');
-        label.append(el('div',(day.open?'🟢 ULTIMA GIORNATA · ':'📅 ')+g.titolo,'archive-day-title'));
+        label.append(el('div',(primaGiornata?'🟢 ULTIMA GIORNATA · ':'📅 ')+g.titolo,'archive-day-title'));
         label.append(el('div','Giornata #'+id+' · '+g.squadre.size+' '+(g.squadre.size===1?'squadra':'squadre')+' partecipanti · 4 partite','archive-subtitle'));
         head.append(label);day.append(head);
         const content=el('div',undefined,'archive-content');
@@ -1189,7 +1189,7 @@
           const completata=righe.length===4&&righe.every(r=>r.risultato!==null);
           const corretti=completata?righe.filter(r=>r.esatto===true).length:null;
           const punti=completata?(corretti===4?10:corretti===3?5:0):null;
-          const team=el('details',undefined,'archive-team'+(squadra.mia?' mine':''));
+          const team=el('details',undefined,'archive-team'+(squadra.mia?' mine':''));team.open=true;
           const summary=el('summary');const name=el('div');
           name.append(el('div',(squadra.mia?'🟢 ':'')+squadra.nome,'archive-team-name'));
           if(squadra.mia)name.append(el('span','LA TUA SQUADRA','ranking-me'));
