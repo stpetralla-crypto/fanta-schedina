@@ -1,0 +1,11 @@
+
+{
+  "name": "Fanta Schedina – LegaLize 3",
+  "short_name": "Fanta Schedina",
+  "start_url": "/fanta-schedina/",
+  "scope": "/fanta-schedina/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#166534",
+  "lang": "it"
+}
